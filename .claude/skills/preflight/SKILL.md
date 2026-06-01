@@ -137,15 +137,15 @@ Schalter in `config.yaml`:
 
 ```yaml
 preflight:
+  enabled: true                  # Gate aktiv
   block_on_violation: true       # /compile + /approve blocken bei Verstoessen
-  course_book_check: true        # C1 in Validator
-  methodengrenzen_check: true    # M1 in Validator
-  number_source_uniqueness: true # N1 in Validator
-  pitfall_strings: true          # S1-S4 in Validator
-  lit_verz_drift: true           # check_lit_verz_drift.py
 ```
 
-Einzelne Checks via `false` deaktivieren — z. B. wenn ein Lit-Verz-Drift bekannt und akzeptiert ist.
+Die einzelnen Checks (C1 Course-Book, M1 Methodengrenzen, N1 Zahlen-Eindeutigkeit,
+S1–S4 Pitfall-Strings, Lit-Verz-Drift) laufen fest in der Validator-/Skill-Logik und
+sind NICHT mehr per Config einzeln schaltbar. Wenn ein einzelner Check für einen
+Lauf übersprungen werden muss (z. B. bekannter, akzeptierter Lit-Verz-Drift):
+`/preflight --skip-lit-verz-drift`, `/preflight --skip-course-book` usw.
 
 ## Verhalten bei Skript-Fehlern
 

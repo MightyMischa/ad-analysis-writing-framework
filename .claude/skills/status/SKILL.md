@@ -50,7 +50,7 @@ Prüfe ob progress.json mit dem tatsächlichen Dateistand übereinstimmt:
 | 4 | Kapitel-Planung | "Für jedes Kapitel wird ein detaillierter Bauplan erstellt." |
 | 5 | Schreiben | "Jetzt wird der wissenschaftliche Text geschrieben -- Kapitel für Kapitel." |
 | 6 | Qualitätsprüfung | "Sprache, Zitate und Argumentation werden systematisch geprüft." |
-| 7 | Finalisierung | "Die Arbeit wird in LaTeX gesetzt und als PDF kompiliert." |
+| 7 | Finalisierung | "Die Arbeit wird als IU-konforme DOCX (Primärartefakt) und PDF gebaut." |
 
 ### 3. Fortschrittsbalken berechnen
 
@@ -121,4 +121,4 @@ Nächster Schritt: [Empfehlung basierend auf Phase]
 | 4 | `/next` -- Nächstes Kapitel planen |
 | 5 | `/write [X.X]` -- Nächstes Kapitel schreiben |
 | 6 | `/review [X.X]` -- Nächstes Kapitel prüfen |
-| 7 | `/compile` -- PDF kompilieren |
+| 7 | `/compile` -- DOCX + PDF bauen |

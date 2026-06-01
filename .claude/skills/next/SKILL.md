@@ -117,8 +117,8 @@ Zitate und Argumentation."
 #### Phase 6 -> 7 (Review -> Finalisierung)
 **Vorbedingung:** Alle Kapitel reviewed (alle Reviews in `output/phase-06-review/final/`)
 **Aktion:** Starte `.claude/agents/finalizer.md`
-**Erklärung:** "Alle Kapitel sind geprüft und freigegeben. Jetzt erstelle
-ich das LaTeX-Dokument und kompiliere dein PDF."
+**Erklärung:** "Alle Kapitel sind geprüft und freigegeben. Jetzt baue ich
+die IU-konforme DOCX (Primärartefakt) und das PDF über scripts/build_docx.py."
 
 ### 4. Nach der Aktion
 

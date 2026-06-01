@@ -77,9 +77,10 @@ Versuche den Betreuer zu finden:
 
 Prüfe `assets/img/` nach Bilddateien (*.jpg, *.jpeg, *.png, *.pdf, *.svg).
 
-#### A7: LaTeX-Check
+#### A7: Build-Tools-Check
 
-Führe `which xelatex && which latexmk` aus.
+Prüfe `python3 -c "import docx"` (python-docx, Pflicht für den DOCX-Builder) und
+`which soffice || which libreoffice` (LibreOffice, optional für PDF-Konvertierung).
 
 #### A8: Quellen-Workflow ableiten
 
@@ -133,7 +134,7 @@ Auto-Setup abgeschlossen! Ich habe folgendes aus deinen Dateien erkannt:
 ├─────────────────┼───────────────────────────────────┤
 │ SYSTEM                                              │
 ├─────────────────┼───────────────────────────────────┤
-│ LaTeX           │ [Installiert / Nicht installiert]  │
+│ DOCX-Build      │ python-docx [ok/fehlt], PDF [LibreOffice ok/fehlt] │
 │ Logo            │ [Gefunden / Nicht gefunden]        │
 │ Voice-Profile   │ [Aktiv / Nicht gefunden]           │
 │ Course Book     │ [Pfad oder "nicht gefunden"]       │
@@ -165,60 +166,29 @@ Der User tippt die Korrekturen bei "Other" ein. Iteriere bis der User bestätigt
 
 #### 1. config.yaml schreiben
 
+Übernimm das Schema aus der mitgelieferten `config.yaml` (v3, IU-Defaults) und fülle
+die erkannten Werte ein. Kein `latex:`-Block mehr; `zitationsstil` ist `apa7`.
+
 ```yaml
 projekt:
   titel: "[Thema aus Aufgabenstellung]"
   sprache: "de"
-  typ: "[Arbeitstyp]"
-  methodik: "[literatur/empirisch-qualitativ/empirisch-quantitativ/konzeptionell]"
+  typ: "fallstudie"                       # seminararbeit | fallstudie
+  methodik: "[literatur/empirisch-qualitativ/empirisch-quantitativ]"
   kurs_modul: "[Kurs-Code, z.B. DLBINGDABD01]"
   kurs_titel: "[Kursname, z.B. Data Analytics and Big Data]"
   course_book_pfad: "[Relativer Pfad zum Course Book]"
+  semester: "[z.B. 5. Semester – Fernstudium, optional]"
 
 quellen:
   workflow: "[bibtex/pdf-extraktion/manuell/keine]"
   import_pfad: ""
 
-autor:
-  name: "[Name]"
-  matrikelnummer: "[Matrikelnummer]"
-  hochschule: "[Hochschule]"
-  studiengang: "[Studiengang]"
-
-betreuung:
-  erstgutachter: "[Name oder leer]"
-  zweitgutachter: ""
-
-abgabe:
-  datum: ""
-  ort: ""
-
-formatierung:
-  zitationsstil: "[apa7/harvard-inline/ieee/chicago]"
-  seitenumfang:
-    min: [Zahl]
-    max: [Zahl]
-  schriftart: "[Schriftart]"
-  schriftgroesse: [Zahl]
-  zeilenabstand: [Zahl]
-  seitenränder:
-    oben: [Zahl]
-    unten: [Zahl]
-    links: [Zahl]
-    rechts: [Zahl]
-
-verzeichnisse:
-  inhaltsverzeichnis: true
-  abbildungsverzeichnis: false
-  tabellenverzeichnis: [true/false]
-  abkuerzungsverzeichnis: [true/false]
-  literaturverzeichnis: true
-  selbststaendigkeitserklaerung: false
-
 codex:
   auto_review: true
   model: "gpt-5.5"
   reasoning_effort: "xhigh"
+  quiet_in_auto: true
   trigger_on:
     approve_phase_6: true
     pre_compile: true
@@ -226,24 +196,71 @@ codex:
 
 preflight:
   enabled: true
-  block_on_fail: true
+  block_on_violation: true
 
-latex:
-  auto_compile: true
-  installation_geprüft: [true/false]
+docx_frozen:
+  enabled: false
+  guard_path: "output/phase-07-docx/*_final_konform*.docx"
+  block_overwrite: true
+  warn_on_markdown_edit: true
+
+r_toolchain:
+  enabled: [true nur bei methodik=empirisch-quantitativ, sonst false]
+
+workflow:
+  auto:
+    gates: ["topic", "outline"]
+    max_autofix_attempts: 3
+    audit_log: "output/auto-run.log"
+
+autor:
+  name: "[Name]"
+  matrikelnummer: "[Matrikelnummer]"
+  hochschule: "IU Internationale Hochschule"
+  studiengang: "[Studiengang]"
+
+betreuung:
+  erstgutachter: "[Name oder leer]"     # IU: nur ein:e Tutor:in
+
+abgabe:
+  datum: ""
+  ort: ""
+
+formatierung:
+  zitationsstil: "apa7"                   # IU-Standard
+  seitenumfang:
+    min: 7
+    max: 10
+  schriftart: "Arial"
+  schriftgroesse: 11
+  zeilenabstand: 1.5
+  seitenränder:
+    oben: 2.0
+    unten: 2.0
+    links: 2.0
+    rechts: 2.0
+
+verzeichnisse:
+  inhaltsverzeichnis: true
+  abbildungsverzeichnis: false
+  tabellenverzeichnis: [true/false]
+  abkuerzungsverzeichnis: true
+  literaturverzeichnis: true
+  selbststaendigkeitserklaerung: true
 
 logo:
   erkannt: [true/false]
   pfad: "[Pfad oder leer]"
 
-r_toolchain:
-  enabled: [true/false — nur bei empirisch-quantitativ mit R]
-
 fortschritt:
   aktuelle_phase: 1
+  abgeschlossene_phasen: []
   gestartet_am: "[heutiges Datum YYYY-MM-DD]"
   letztes_update: "[heutiges Datum YYYY-MM-DD]"
 ```
+
+> Bei `methodik != empirisch-quantitativ` bleibt `r_toolchain.enabled: false`.
+> Werte aus Richtlinien-PDFs übernehmen, falls abweichend von den IU-Defaults.
 
 #### 2. sources/literature.md erstellen (falls nicht vorhanden)
 
@@ -295,38 +312,26 @@ Falls Auto-Detect fehlschlägt (keine Dateien im Parent, kein Kursordner erkennb
 Verwende für JEDE Frage das **AskUserQuestion-Tool**. Stelle KEINE Fragen als normale
 Textnachricht.
 
-### Schritt 1: Arbeitstyp, Methodik, Sprache, Zitationsstil
+### Schritt 1: Arbeitstyp, Methodik
 
-Stelle vier Fragen gleichzeitig:
+Stelle beide Fragen gleichzeitig (Sprache=de und Zitationsstil=apa7 sind fix):
 
 **Frage 1: "Was für eine Arbeit schreibst du?"**
 - header: "Arbeitstyp"
 - Optionen:
-  - label: "Seminararbeit", description: "10–20 Seiten"
-  - label: "Hausarbeit", description: "15–25 Seiten"
-  - label: "Bachelorarbeit", description: "40–60 Seiten"
-  - label: "Masterarbeit", description: "50–100 Seiten"
+  - label: "Fallstudie", description: "IU-Fallstudie, 7–10 Seiten (Regelfall)"
+  - label: "Seminararbeit", description: "Seminararbeit, 7–10 Seiten"
 
 **Frage 2: "Literaturarbeit oder empirisch?"**
 - header: "Methodik"
 - Optionen:
   - label: "Literaturarbeit", description: "Analyse bestehender Literatur"
   - label: "Empirisch qualitativ", description: "Interviews, Fallstudien"
-  - label: "Empirisch quantitativ", description: "Umfragen, Statistik"
+  - label: "Empirisch quantitativ", description: "Umfragen, Statistik (aktiviert R-Toolchain)"
 
-**Frage 3: "In welcher Sprache?"**
-- header: "Sprache"
-- Optionen:
-  - label: "Deutsch", description: "Standard"
-  - label: "Englisch", description: "International"
-
-**Frage 4: "Zitationsstil?"**
-- header: "Zitationsstil"
-- Optionen:
-  - label: "APA 7", description: "Sozialwissenschaften, IU-Standard"
-  - label: "Harvard Inline", description: "DACH-Raum"
-  - label: "IEEE", description: "Technik"
-  - label: "Chicago", description: "Geisteswissenschaften"
+Sprache ist immer Deutsch (kein Englisch-Support). Zitationsstil ist immer APA7
+(IU-Standard) — beides nicht abfragen, direkt setzen. Für Nicht-IU-Stile siehe
+docs/archive/citation-systems/.
 
 ### Schritt 2: Persönliche Daten
 
@@ -339,7 +344,7 @@ Optionen abhängig vom Arbeitstyp aus Schritt 1.
 
 ### Schritt 4: Betreuung und Abgabe
 
-Erstgutachter, Zweitgutachter, Abgabedatum. Freitext über "Other".
+Erstgutachter (Tutor:in) und Abgabedatum. Freitext über "Other". (IU: kein Zweitgutachter.)
 
 ### Schritt 5: Quellen-Workflow
 
@@ -353,7 +358,7 @@ PDF-Leitfaden vorhanden? Ja → extrahieren. Nein → Schriftart, Größe, Absta
 
 Thema (falls noch offen), verbotene Wörter, Literatur bereits vorhanden?
 
-### Schritt 8: LaTeX-Check (automatisch)
+### Schritt 8: Build-Tools-Check (automatisch — python-docx Pflicht, LibreOffice optional für PDF)
 
 ### Schritt 9: Logo-Check (automatisch)
 

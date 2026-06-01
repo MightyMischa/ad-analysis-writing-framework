@@ -77,32 +77,43 @@ def check_heading_colors(styles_xml: str):
 
 
 def check_body_line_spacing(doc_xml: str):
-    """Erwartet: Mehrheit der Body-Paragraphen mit line=360 (1,5-zeilig)."""
-    spacings = re.findall(r"<w:spacing[^/]*/>", doc_xml)
+    """Erwartet: Body-Fließtext mit line=360 (1,5-zeilig).
+
+    Präzise: Überschriften (Heading*), Verzeichnis-Einträge (TOC*), Caption und
+    Tabellenzellen dürfen legitim 1,15-zeilig (line=276) sein und werden NICHT
+    gezählt. Nur echte Body-Absätze mit Text fließen in die Heuristik ein.
+    """
+    # Tabellen komplett ausklammern (Zellen-Absätze sind kein Body-Fließtext)
+    no_tables = re.sub(r"<w:tbl\b.*?</w:tbl>", "", doc_xml, flags=re.DOTALL)
+    paras = re.findall(r"<w:p\b[^>]*>.*?</w:p>", no_tables, flags=re.DOTALL)
     counts = {"line=360": 0, "line=276": 0, "line=240": 0, "andere": 0, "ohne": 0}
-    for sp in spacings:
-        line_match = re.search(r'line="(\d+)"', sp)
+    for para in paras:
+        # Überschriften / Verzeichnis-Anker / Caption überspringen
+        if re.search(r'<w:pStyle w:val="(?:Heading\d|TOC\d|Caption)"', para):
+            continue
+        # Leerabsätze (Spacer, ohne sichtbaren Text) überspringen
+        if not re.sub(r"<[^>]+>", "", para).strip():
+            continue
+        line_match = re.search(r'<w:spacing[^>]*\bline="(\d+)"', para)
         if not line_match:
+            # Kein explizites Spacing → erbt Normal-Style (line=360) → konform
             counts["ohne"] += 1
             continue
         v = line_match.group(1)
-        if v == "360":
-            counts["line=360"] += 1
-        elif v == "276":
-            counts["line=276"] += 1
-        elif v == "240":
-            counts["line=240"] += 1
+        if v in ("360", "276", "240"):
+            counts[f"line={v}"] += 1
         else:
             counts["andere"] += 1
     issues = []
-    if counts["line=360"] == 0:
+    compliant = counts["line=360"] + counts["ohne"]
+    if compliant == 0 and counts["line=276"] > 0:
         issues.append(
-            f"F3: Kein Paragraph mit 1,5-zeiligem Abstand gefunden (line=360). Spacing-Verteilung: {counts}"
+            f"F3: Kein Body-Absatz mit 1,5-zeiligem Abstand (line=360). Verteilung: {counts}"
         )
-    elif counts["line=276"] > counts["line=360"] * 0.5:
+    elif counts["line=276"] > compliant * 0.5:
         issues.append(
-            f"F3: Auffällig viele Paragraphen mit 1,15-zeilig statt 1,5: {counts}. "
-            "Body-Paragraphen sollten line=360 haben."
+            f"F3: Auffällig viele Body-Absätze mit 1,15-zeilig statt 1,5: {counts}. "
+            "Body-Fließtext sollte line=360 haben."
         )
     return issues
 

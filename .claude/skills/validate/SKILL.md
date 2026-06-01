@@ -14,17 +14,17 @@ Prüft config.yaml, literature.md, progress.json und die Verzeichnisstruktur auf
 Lies `config.yaml` und prüfe:
 
 **Pflichtfelder (nach /setup):**
-- `projekt.typ` muss eines von: seminararbeit, hausarbeit, bachelor, master, dissertation
+- `projekt.typ` muss eines von: seminararbeit, fallstudie (weitere Typen archiviert)
 - `projekt.methodik` muss eines von: literatur, empirisch-qualitativ, empirisch-quantitativ
-- `projekt.sprache` muss "de" sein (einzige aktuell unterstützte Sprache)
-- `formatierung.zitationsstil` muss eines von: harvard-inline, apa7, ieee, chicago
+- `projekt.sprache` muss "de" sein (einzige unterstützte Sprache)
+- `formatierung.zitationsstil` muss "apa7" sein (IU-Standard; harvard/ieee/chicago archiviert unter docs/archive/)
 - `formatierung.seitenumfang.min` < `formatierung.seitenumfang.max`
 - `formatierung.schriftgroesse` zwischen 10 und 14
 - `formatierung.zeilenabstand` zwischen 1.0 und 2.0
 
 **Zitationsstil-Datei prüfen:**
-- Prüfe ob `base/guides/citation-systems/{zitationsstil}.md` existiert
-- Falls nicht: Fehler melden mit Liste der verfügbaren Stile
+- Prüfe ob `base/guides/citation-systems/{zitationsstil}.md` existiert (apa7.md ist aktiv)
+- Falls nicht: Fehler melden (für Nicht-IU-Stile siehe docs/archive/citation-systems/)
 
 **Quellen-Workflow prüfen:**
 - `quellen.workflow` muss eines von: bibtex, pdf-extraktion, manuell, keine
@@ -86,7 +86,7 @@ Prüfe ob alle erwarteten Verzeichnisse existieren:
 - `output/phase-04-plans/draft/` und `final/`
 - `output/phase-05-writing/draft/` und `final/`
 - `output/phase-06-review/draft/` und `final/`
-- `output/phase-07-latex/latex/`
+- `output/phase-07-docx/`
 - `sources/`
 - `base/guides/`
 

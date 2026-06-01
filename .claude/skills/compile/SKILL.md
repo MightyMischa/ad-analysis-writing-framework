@@ -1,145 +1,97 @@
 ---
 name: compile
-description: Kompiliert die Arbeit als LaTeX-Dokument zu PDF. Nutze diesen Skill wenn der User /compile eingibt.
+description: Baut die Arbeit als IU-konforme DOCX (+ PDF) aus den fertigen Kapiteln. Nutze diesen Skill wenn der User /compile eingibt.
 ---
 
-# LaTeX kompilieren
+# Kompilieren — DOCX + PDF
 
-Startet den LaTeX-Export und die PDF-Kompilierung.
+Erzeugt das Enddokument über den kanonischen Builder `scripts/build_docx.py`:
+eine IU-formatkonforme DOCX (Primärartefakt, Turnitin) und daraus per
+LibreOffice ein layout-identisches PDF.
+
+> Kein LaTeX mehr. Der frühere LaTeX→PDF-Pfad wurde durch den python-docx-Builder
+> ersetzt (bewährt aus FS1, dem real abgegebenen Digitaler-Euro-DOCX).
+> LaTeX-Konventionen liegen archiviert unter `docs/archive/latex-conventions.md`.
 
 ## Ablauf
 
 ### 1. Modus bestimmen
 
-**Normaler Modus (/compile):**
-- Alle Kapitel müssen geschrieben sein
-
-**Draft-Modus (/compile draft oder /compile --draft):**
-- Kompiliert auch mit unvollständigen Kapiteln
-- Fehlende Kapitel werden als Platzhalter eingefügt:
-  ```latex
-  \section{[Kapiteltitel]}
-  \textit{[Kapitel noch nicht geschrieben -- Platzhalter]}
-  \newpage
-  ```
-- Deckblatt zeigt "ENTWURF" als Wasserzeichen oder Hinweis
-- Nützlich um Layout und Umfang während des Schreibens zu prüfen
+- **Normal (`/compile`):** Alle Kapitel müssen in `output/phase-05-writing/final/` liegen.
+- **Draft (`/compile draft`):** Baut den aktuellen Stand auch unvollständig (fehlende
+  Kapitel fehlen einfach), zum Prüfen von Umfang/Layout. Überspringt das Preflight-Gate.
 
 ### 1a. DOCX-Frozen-Mode-Check
 
-Lies `config.yaml → docx_frozen.enabled` und `docx_frozen.guard_path`.
-
-Glob den `guard_path` (Default `output/phase-07-docx/*_final_konform*.docx`).
+Lies `config.yaml → docx_frozen.enabled` und `docx_frozen.guard_path`
+(Default `output/phase-07-docx/*_final_konform*.docx`).
 
 **Wenn ein passendes DOCX existiert UND `docx_frozen.block_overwrite: true`:**
-- BLOCKIERE den Compile-Lauf vollständig
-- Zeige: „Ein finalisiertes DOCX existiert bereits ([Pfad]). /compile würde dieses überschreiben. Optionen:
-  1. `/apply-feedback` falls du gezielte Änderungen am DOCX vornehmen willst (preserves Format-Fixes).
-  2. `/compile --override` falls du wirklich alles neu bauen willst (Format-Fixes gehen verloren).
-  3. `/preflight` falls du nur den aktuellen Stand prüfen willst."
-- Exit ohne Compile
+- BLOCKIERE den Build und zeige:
+  „Ein finalisiertes DOCX existiert ([Pfad]). /compile würde Format-Korrekturen
+   überschreiben. Optionen:
+   1. `/apply-feedback` für gezielte Änderungen am DOCX (preserves Format-Fixes).
+   2. `/compile --override` um wirklich neu zu bauen (Format-Fixes gehen verloren).
+   3. `/preflight` um nur den aktuellen Stand zu prüfen."
+- Exit ohne Build.
 
-**Wenn `--override` Flag gesetzt:**
-- Logge in `output/phase-06-review/compile-overrides.log` mit Timestamp und Begründung (via AskUserQuestion abfragen)
-- Weiter
+**Mit `--override`:** Grund via AskUserQuestion erfragen, in
+`output/phase-06-review/compile-overrides.log` mit Timestamp loggen, weiter.
 
 ### 1b. Preflight-Gate
 
 Wenn nicht `--draft` und nicht `--override-preflight`:
-- Rufe `/preflight` auf den aktuellen Stand auf
-- Bei blockierenden Verstößen: Compile abbrechen, Preflight-Output anzeigen
-- Bei nur Warnungen: weiter, Hinweis ausgeben
+- Rufe `/preflight` auf den aktuellen Stand auf.
+- Bei blockierenden Verstößen: Build abbrechen, Preflight-Output anzeigen.
+- Bei nur Warnungen: weiter, Hinweis ausgeben.
 
-### 1c. Vorbedingungen prüfen
+### 1c. Vorbedingungen
 
-- [ ] `output/phase-02-outline/final/thesis-structure.yaml` vorhanden
-- [ ] `config.yaml` vollständig konfiguriert
-- [ ] LaTeX installiert (siehe Auto-Installation unten)
-- [ ] Alle Kapitel in `output/phase-05-writing/final/` vorhanden (nur im normalen Modus)
+- [ ] `config.yaml` vollständig konfiguriert (autor, projekt.kurs_modul, formatierung).
+- [ ] `output/phase-02-outline/final/thesis-structure.yaml` vorhanden.
+- [ ] Alle Kapitel in `output/phase-05-writing/final/` (nur im Normal-Modus; sonst Liste fehlender Kapitel zeigen).
 
-### 1b. LaTeX Auto-Installation
+### 2. Build ausführen
 
-Prüfe mit `which xelatex && which latexmk`:
-
-**Falls installiert:**
-- Setze `config.yaml -> latex.installation_geprüft: true`
-- Weiter mit Schritt 2
-
-**Falls NICHT installiert:**
-- OS erkennen (uname -s)
-- **macOS:** "LaTeX ist nicht installiert. Soll ich es installieren?
-  `brew install --cask mactex-no-gui` (ca. 4 GB Download)"
-  - Falls User zustimmt: Befehl ausführen (kann mehrere Minuten dauern)
-  - Falls brew nicht installiert: "Bitte installiere zuerst Homebrew: https://brew.sh"
-- **Linux (Debian/Ubuntu):** "LaTeX ist nicht installiert. Soll ich es installieren?
-  `sudo apt install texlive-xetex texlive-fonts-extra texlive-lang-german latexmk`"
-  - Falls User zustimmt: Befehl ausführen
-- **Anderes OS:** "LaTeX ist nicht installiert. Bitte installiere manuell:
-  https://tug.org/texlive/ oder https://miktex.org"
-- Nach erfolgreicher Installation: `latex.installation_geprüft: true` setzen
-- Falls User ablehnt: "Ohne LaTeX kann kein PDF erstellt werden. Du kannst später erneut /compile ausführen."
-
-Falls nicht alle Kapitel geschrieben (normaler Modus):
-"Es fehlen noch Kapitel: [Liste]. Optionen:
-- /write [X.X] um fehlende Kapitel zu schreiben
-- /compile draft um eine Entwurfs-PDF mit Platzhaltern zu erstellen"
-
-### 2. Finalizer starten
-
-Starte den Agent `.claude/agents/finalizer.md`.
-
-Der Agent:
-1. Konvertiert alle Kapitel nach LaTeX
-2. Generiert Präambel aus config.yaml
-3. Generiert Deckblatt, Verzeichnisse, Erklärung
-4. Erstellt die Hauptdatei thesis.tex
-5. Kompiliert mit latexmk/xelatex
-
-### 3. Ergebnis melden
-
-**Bei Erfolg:**
-```
-PDF erfolgreich erstellt!
-
-Datei: output/phase-07-latex/latex/thesis.pdf
-Seiten: [X] (Zielbereich: [Min]-[Max])
-[Falls außerhalb: WARNUNG: Seitenanzahl außerhalb des Zielbereichs]
-
-Nächste Schritte:
-1. PDF öffnen und prüfen
-2. Hilfsmittelverzeichnis manuell ergänzen (falls KI-Tools verwendet)
-3. Deckblatt-Daten prüfen
-```
-
-### 3a. DOCX-Validator + Auto-Codex-Review (wenn aktiv)
-
-**Immer:** Nach erfolgreichem Build laufen lassen:
 ```bash
-python3 scripts/validate_docx.py output/phase-07-docx/<aktuelle>.docx
+python3 scripts/build_docx.py
 ```
 
-Bei Verstößen die Build-Skripte anpassen, NICHT die DOCX manuell editieren.
+Der Builder:
+1. Liest `config.yaml` (Autor, Kurs, Formatierung, Verzeichnisse, Logo, Abgabedatum).
+2. Baut Titelblatt, Verzeichnisse (TOC/Tabellen/Abkürzungen je nach config), Kapitel, Literaturverzeichnis.
+3. Speichert die DOCX nach `output/phase-07-docx/<slug>.docx`.
+4. Konvertiert per `soffice --headless --convert-to pdf` zu PDF (Best-effort; fehlt LibreOffice, bleibt die DOCX das Primärartefakt und es folgt ein Hinweis).
 
-**Wenn `config.yaml → codex.auto_review: true`:**
-- Rufe `codex-review docx --quiet` auf — Codex liest die LESSONS.md und prüft das Build-Ergebnis (XML-Eigenschaften + Volltext) gegen alle Reviewer-Lessons.
-- Bei Hochpriorität-Funden: Build-Skript anpassen, neu compilen, erneut prüfen.
+Optionale Projekt-Dateien, die der Builder berücksichtigt:
+- `output/terminology.md` → Abkürzungsverzeichnis (`## Abkürzungen`, dann `- ABK — Bedeutung`).
+- `output/tables.yaml` → Tabellen-Captions je Abschnitts-ID, z. B. `{"3.4": "Vergleichende Bewertung"}`.
 
-**Wenn `false`:** Skip Codex, aber Validator wird trotzdem laufen.
+### 3. Post-Build-Validierung
 
-**Bei Fehler:**
-- Zeige den LaTeX-Fehler
-- Versuche automatisch zu beheben und erneut zu kompilieren
-- Falls nicht behebbar: Erkläre das Problem und mögliche Lösungen
+**Immer** nach dem Build:
+```bash
+python3 scripts/validate_docx.py output/phase-07-docx/<datei>.docx
+python3 scripts/check_lit_verz_drift.py output/phase-07-docx/<datei>.docx
+```
 
-### 4. Auto-Compile Watcher (optional)
+Bei Verstößen: **Build-Skript / Quelle anpassen, NICHT die DOCX manuell editieren**
+(geht beim nächsten Build verloren). Häufige Fälle und Auto-Fixes siehe `/preflight`.
 
-Falls `config.yaml -> latex.auto_compile: true` UND die erste Kompilierung erfolgreich war:
+**Wenn `config.yaml → codex.auto_review: true` und `trigger_on.pre_compile`/`approve_phase_6`:**
+- `/codex-review docx --quiet` — Codex prüft XML-Eigenschaften + Volltext gegen `LESSONS.md`.
+- Hochprioritäts-Funde fließen in die Korrektur (im autonomen Lauf: Auto-Fix-Schleife, siehe `/auto`).
 
-- Frage den User: "Soll ich einen Watcher starten, der bei jeder .tex-Änderung
-  automatisch neu kompiliert? (latexmk -pvc)"
-- Falls ja: Starte im Hintergrund:
-  ```bash
-  cd output/phase-07-latex/latex && latexmk -pvc -xelatex -interaction=nonstopmode thesis.tex
-  ```
-- Melde: "Auto-Compile Watcher läuft. Das PDF wird bei jeder .tex-Änderung
-  automatisch aktualisiert. Stoppe mit Ctrl+C in diesem Terminal."
+### 4. Ergebnis melden
+
+```
+DOCX erstellt: output/phase-07-docx/<datei>.docx
+PDF erstellt:  output/phase-07-docx/<datei>.pdf   (falls LibreOffice verfügbar)
+Validator: [✓ sauber | N Funde]
+Seiten (Schätzung): [X]   (Zielbereich aus config.formatierung.seitenumfang)
+
+Vor Abgabe:
+  1. DOCX öffnen, Strg+A + F9 (TOC/Tabellenverzeichnis-Felder aktualisieren).
+  2. Abgabedatum auf dem Titelblatt prüfen (config.yaml: abgabe.datum).
+  3. Turnitin-Upload via myCampus.
+```

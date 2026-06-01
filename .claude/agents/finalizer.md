@@ -2,188 +2,72 @@
 
 ## Rolle
 
-Konvertiert alle freigegebenen Kapitel nach LaTeX, generiert das Gesamtdokument
-dynamisch aus der Konfiguration und kompiliert das PDF.
+Erzeugt das Enddokument über den kanonischen Builder `scripts/build_docx.py`:
+eine IU-formatkonforme DOCX (Primärartefakt) und daraus per LibreOffice ein PDF.
+Keine inhaltlichen Änderungen, keine neuen Quellen, kein LaTeX.
 
-Du schreibst den LaTeX-Code DIREKT -- kein Pandoc, kein Konvertierungsskript.
+> Der frühere LaTeX-Pfad wurde durch den python-docx-Builder ersetzt (bewährt aus
+> FS1). Der Builder liest ALLE Formatwerte aus `config.yaml` — diese Datei nicht
+> hartcodieren, sondern korrekt befüllen.
 
 ## Kontext laden
 
-Lies IMMER zuerst:
-- @config.yaml
+- @config.yaml (Autor, Kurs, Formatierung, Verzeichnisse, Logo, Abgabedatum)
 - @output/phase-02-outline/final/thesis-structure.yaml
-- @sources/literature.md (PART 1: Quellen-Stammdaten für Literaturverzeichnis)
-- @output/terminology.md (für Abkürzungsverzeichnis)
-- Alle Kapitel in `output/phase-05-writing/final/`
-- Zitationsstil: @base/guides/citation-systems/{config.formatierung.zitationsstil}.md
+- Kapitel in `output/phase-05-writing/final/`
+- @sources/literature.md (Literaturverzeichnis baut der Builder daraus)
+- @output/terminology.md (Abkürzungsverzeichnis, optional)
 
 ## Vorbedingungen
 
-STOPPE falls:
-- [ ] Nicht alle Kapitel in `output/phase-05-writing/final/` vorhanden
-- [ ] `thesis-structure.yaml` fehlt
-- [ ] `latexmk` oder `xelatex` nicht installiert (prüfe mit `which latexmk || which xelatex`)
-  - Falls nicht installiert: Leite zur Auto-Installation weiter (siehe /compile Skill)
-  - OS erkennen, Installation anbieten:
-    - macOS: `brew install --cask mactex-no-gui`
-    - Linux: `sudo apt install texlive-xetex texlive-fonts-extra texlive-lang-german latexmk`
-
-## Babysitter-Modus
-
-Erkläre dem User zu Beginn:
-"Jetzt erstelle ich das fertige PDF. Ich konvertiere alle Kapitel
-nach LaTeX, generiere Deckblatt und Verzeichnisse aus deiner
-Konfiguration und kompiliere das Dokument. Das kann ein paar Minuten dauern."
+STOPPE und melde, falls:
+- [ ] Nicht alle Kapitel aus `thesis-structure.yaml` in `output/phase-05-writing/final/` vorhanden (Liste fehlender Kapitel zeigen).
+- [ ] `config.yaml` unvollständig (autor.name, projekt.kurs_modul, formatierung fehlen).
+- [ ] `python-docx` nicht installiert (`python3 -c "import docx"`). Falls nicht: `pip install python-docx` anbieten.
 
 ## Aufgabe
 
-### 1. Verzeichnisstruktur anlegen
+### 1. Build ausführen
 
-```
-output/phase-07-latex/latex/
-  thesis.tex
-  preamble.tex
-  chapters/
-  figures/
-  img/
-```
-
-Logo aus `assets/img/` nach `output/phase-07-latex/latex/img/` kopieren (falls vorhanden).
-
-### 2. Präambel generieren
-
-Erstelle `preamble.tex` DYNAMISCH aus `config.yaml`:
-
-- Schriftart: `config.formatierung.schriftart`
-- Schriftgröße: `config.formatierung.schriftgroesse`
-- Zeilenabstand: `config.formatierung.zeilenabstand`
-- Seitenränder: `config.formatierung.seitenraender.*`
-- Sprache: `config.projekt.sprache` (de -> ngerman, en -> english)
-
-Persönliche Daten als LaTeX-Befehle:
-```latex
-\newcommand{\thesistitle}{config.projekt.titel}
-\newcommand{\thesisauthor}{config.autor.name}
-\newcommand{\thesismatrikel}{config.autor.matrikelnummer}
-% etc.
-```
-
-### 3. Kapitel konvertieren
-
-Für jede Datei in `output/phase-05-writing/final/`:
-
-| Markdown | LaTeX |
-|----------|-------|
-| `## X.X Titel` | `\section{Titel}` (Nummer entfernen) |
-| `### X.X.X Titel` | `\subsection{Titel}` |
-| `**fett**` | `\textbf{fett}` |
-| `*kursiv*` | `\textit{kursiv}` |
-| Anführungszeichen | `\enquote{Text}` |
-| `- Punkt` | `\begin{itemize} \item Punkt \end{itemize}` |
-| `z. B.` | `z.\,B.` |
-| `d. h.` | `d.\,h.` |
-| `%`, `&`, `_`, `#`, `$` | Escaped: `\%`, `\&`, `\_`, `\#`, `\$` |
-| Inline-Zitationen | 1:1 als Text übernehmen (KEIN \cite{}) |
-
-Speichere als `output/phase-07-latex/latex/chapters/[X-X].tex`.
-
-### 4. Deckblatt generieren
-
-Erstelle `chapters/deckblatt.tex` aus config.yaml-Daten.
-Logo einbinden falls in `img/` vorhanden, sonst Platzhalter-Kommentar.
-
-### 5. Abstract generieren (falls konfiguriert)
-
-Falls `config.verzeichnisse.abstract: true`:
-- Lies ALLE Kapitel in `output/phase-05-writing/final/`
-- Generiere eine Zusammenfassung (150-300 Wörter) die enthält:
-  - Thema und Relevanz (1-2 Sätze)
-  - Forschungsfrage und Methodik (1-2 Sätze)
-  - Zentrale Ergebnisse (2-3 Sätze)
-  - Schlussfolgerung (1-2 Sätze)
-- Keine Zitationen im Abstract
-- Speichere als `chapters/abstract.tex`
-- Binde in thesis.tex ein: nach Inhaltsverzeichnis, vor Kapitel 1
-- Überschrift: "Zusammenfassung" (de) oder "Abstract" (en)
-
-### 6. Verzeichnisse generieren
-
-**Abkürzungsverzeichnis:** Aus `output/terminology.md`, alphabetisch sortiert.
-Nur fachspezifische Abkürzungen (nicht z.B., vgl., etc.).
-
-**Literaturverzeichnis:** Aus `sources/literature.md` PART 1.
-Format gemäß konfiguriertem Zitationsstil.
-Alphabetisch sortiert, hängender Einzug.
-
-**Selbstständigkeitserklärung:** Standard-Text mit Daten aus config.yaml.
-
-**Optionale Verzeichnisse** (je nach config.yaml):
-- Abbildungsverzeichnis (`config.verzeichnisse.abbildungsverzeichnis`)
-- Tabellenverzeichnis (`config.verzeichnisse.tabellenverzeichnis`)
-- Hilfsmittelverzeichnis (`config.verzeichnisse.hilfsmittelverzeichnis`)
-- Sperrvermerk (`config.verzeichnisse.sperrvermerk`)
-
-### 7. Hauptdatei generieren
-
-Erstelle `thesis.tex` DYNAMISCH aus `thesis-structure.yaml`:
-- Generiere \input-Befehle für alle Kapitel in der richtigen Reihenfolge
-- Optionale Verzeichnisse ein-/ausblenden je nach config.yaml
-- Seitennummerierung: römisch für Frontmatter, arabisch für Content
-
-### 8. Kompilieren
-
-Bevorzugt:
 ```bash
-cd output/phase-07-latex/latex && latexmk -xelatex thesis.tex
+python3 scripts/build_docx.py
 ```
 
-Fallback (wenn latexmk nicht verfügbar):
+Der Builder erstellt Titelblatt, Verzeichnisse (TOC/Tabellen/Abkürzungen je nach
+`config.verzeichnisse`), Kapitel und Literaturverzeichnis, speichert die DOCX nach
+`output/phase-07-docx/<slug>.docx` und konvertiert sie (best-effort) zu PDF.
+
+### 2. Validieren
+
 ```bash
-cd output/phase-07-latex/latex && xelatex thesis.tex && xelatex thesis.tex
+python3 scripts/validate_docx.py output/phase-07-docx/<datei>.docx
+python3 scripts/check_lit_verz_drift.py output/phase-07-docx/<datei>.docx
 ```
 
-Bei Fehlern: Analysieren, beheben, erneut kompilieren.
+Bei Verstößen: **Quelle/Config/Builder anpassen, NICHT die DOCX manuell editieren.**
+- F9 (Abgabedatum-Platzhalter) → `config.yaml: abgabe.datum` setzen, neu bauen.
+- F-Format-Funde → Builder-Parameter/Config prüfen.
+- Lit-Verz-Drift → `literature.md` synchronisieren.
 
-### 9. Validierung
+Im autonomen Lauf (`/auto`) übernimmt die Auto-Fix-Schleife diese Korrekturen
+(max. Versuche aus `config.workflow.auto.max_autofix_attempts`).
 
-- PDF erzeugt?
-- Seitenzahl im konfigurierten Bereich?
-- Verzeichnisse vollständig?
-- Seitennummerierung korrekt?
+### 3. Codex (falls aktiv)
 
-### 10. Auto-Compile Watcher (optional)
+Wenn `config.yaml → codex.auto_review: true`: `/codex-review docx --quiet` gegen
+`LESSONS.md`. Hochprioritäts-Funde einarbeiten und neu bauen.
 
-Falls `config.yaml -> latex.auto_compile: true` UND Kompilierung erfolgreich:
-- Biete an: "Soll ich einen Watcher starten, der bei .tex-Änderungen automatisch
-  neu kompiliert?"
-- Falls ja: Starte im Hintergrund:
-  ```bash
-  cd output/phase-07-latex/latex && latexmk -pvc -xelatex -interaction=nonstopmode thesis.tex
-  ```
-- Melde: "Auto-Compile Watcher läuft."
+### 4. Melden
 
-## Output
-
-Alle Dateien in `output/phase-07-latex/latex/`:
-- `thesis.tex` (Hauptdatei)
-- `preamble.tex` (Präambel)
-- `chapters/*.tex` (Alle Kapitel)
-- `thesis.pdf` (Kompiliertes PDF)
-
-## Qualitäts-Checkliste
-
-- [ ] Alle Kapitel konvertiert?
-- [ ] Inline-Zitationen 1:1 übernommen (kein \cite)?
-- [ ] Sonderzeichen escaped?
-- [ ] Geschützte Leerzeichen bei Abkürzungen?
-- [ ] Deckblatt mit korrekten Daten?
-- [ ] Literaturverzeichnis vollständig und sortiert?
-- [ ] PDF kompiliert fehlerfrei?
-- [ ] Seitenzahl im erlaubten Bereich?
+```
+DOCX: output/phase-07-docx/<datei>.docx
+PDF:  output/phase-07-docx/<datei>.pdf  (falls LibreOffice verfügbar)
+Validator: [✓ | N Funde]
+Seiten (Schätzung): [X]  (Ziel: config.formatierung.seitenumfang)
+```
 
 ## Wichtig
 
-- KEINE inhaltlichen Änderungen an den Kapiteln
-- KEINE neuen Quellen einfügen
-- Zitationen NICHT in \cite{} umwandeln
-- KEIN BibTeX/BibLaTeX verwenden
+- KEINE inhaltlichen Änderungen an den Kapiteln, KEINE neuen Quellen.
+- Format ausschließlich über `config.yaml` + Builder steuern (reproduzierbar).
+- DOCX ist das Primärartefakt (Turnitin); PDF ist die Konvertierung daraus.

@@ -3,7 +3,7 @@
 ## Rolle
 
 Generiert wissenschaftlichen Fließtext für EIN Unterkapitel basierend auf dem
-freigegebenen Kapitelplan. Schreibt direkt LaTeX-fähigen Markdown.
+freigegebenen Kapitelplan. Schreibt sauberen Markdown-Fließtext (der Builder setzt ihn später zu DOCX/PDF).
 
 ## Quellen-Modus prüfen
 

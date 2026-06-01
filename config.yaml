@@ -1,44 +1,39 @@
-# === Scientific Writing Framework - Projektkonfiguration ===
-# Diese Datei wird von /setup automatisch generiert.
-# Du kannst sie auch manuell bearbeiten -- Änderungen werden beim nächsten /next berücksichtigt.
+# === Scientific Writing Framework - Projektkonfiguration (v3, IU-Fallstudien) ===
+# Wird von /setup automatisch generiert (Auto-Detect aus Nachbarprojekten + Kursordnern).
+# Manuelle Änderungen werden beim nächsten /next / /auto berücksichtigt.
 #
-# Starte /setup um diese Datei interaktiv auszufüllen.
+# Defaults sind auf IU-Fallstudien eingestellt (Arial 11, 1,5, 2 cm, 7–10 S., APA7).
 
 projekt:
   titel: ""                             # Wird in Phase 1/2 festgelegt
-  sprache: "de"                         # de (Englisch-Support in Planung)
-  typ: ""                               # seminararbeit | hausarbeit | bachelor | master | dissertation | fallstudie
-  methodik: ""                          # literatur | empirisch-qualitativ | empirisch-quantitativ
-  kurs_modul: ""                        # IU-Modulkürzel z. B. "DLBFTBCKW01" — pflicht bei Fallstudien
+  sprache: "de"                         # nur Deutsch (kein Englisch-Support implementiert)
+  typ: "fallstudie"                     # seminararbeit | fallstudie  (weitere Typen archiviert: docs/archive/kapitelmodelle-all.md)
+  methodik: "literatur"                 # literatur | empirisch-qualitativ | empirisch-quantitativ
+  kurs_modul: ""                        # IU-Modulkürzel z. B. "DLBFTBCKW01" — PFLICHT bei Fallstudien
   kurs_titel: ""                        # Klartext z. B. "Blockchain und Kryptowährungen"
-  course_book_pfad: ""                  # Pfad zum Lernskript-PDF, z. B. "../Blockchain/001-2024-0129_DLBFTBCKW01_Course_Book.pdf"
+  course_book_pfad: ""                  # Pfad zum Lernskript-PDF, z. B. "../Blockchain/001-..._Course_Book.pdf"
+  semester: ""                          # Titelblatt, z. B. "5. Semester – Fernstudium" (optional)
 
 quellen:
-  workflow: ""                          # bibtex | pdf-extraktion | manuell | keine
+  workflow: "manuell"                   # bibtex | pdf-extraktion | manuell | keine
   import_pfad: ""                       # Pfad zur .bib oder Zotero-Exportdatei
-
-latex:
-  auto_compile: true                    # Automatische Neukompilierung bei .tex-Änderungen
-  installation_geprüft: false          # Wird von /setup oder /compile gesetzt
 
 codex:
   auto_review: true                     # Nach jedem Schritt automatisch /codex-review aufrufen
   model: "gpt-5.5"                      # Default aus ~/.codex/config.toml falls leer
   reasoning_effort: "xhigh"             # Maximale Reasoning-Tiefe
-  quiet_in_auto: true                   # Bei Auto-Hooks nur Hochpriorität-Funde ausgeben
+  quiet_in_auto: true                   # Bei Auto-Hooks nur Hochprioritäts-Funde ausgeben
   log_dir: "output/phase-06-review"     # Codex-Outputs hier archivieren
-  trigger_on:                           # Wann Auto-Codex feuert (User-Wahl: mittel)
+  trigger_on:                           # Wann Auto-Codex feuert
     approve_phase_6: true               # Nach Phase-6-Approve
     pre_compile: true                   # Vor jedem /compile
     chapter_approve: false              # Nach jedem Kapitel-Approve (aggressiv)
 
 preflight:
-  block_on_violation: true              # /compile + /approve werden blockiert bei Verstößen
-  course_book_check: true               # Mindestens eine Course-Book-Citation Pflicht
-  methodengrenzen_check: true           # Fazit muss Limitations-Marker enthalten
-  number_source_uniqueness: true        # Konkrete Zahlen brauchen genau eine Primärquelle
-  pitfall_strings: true                 # Reviewer-Pitfall-Strings dürfen nicht im Volltext stehen
-  lit_verz_drift: true                  # DOCX-Lit-Verz vs. literature.md abgleichen
+  enabled: true                         # Pre-Compile-Gate aktiv
+  block_on_violation: true              # /compile + /approve werden bei harten Verstößen blockiert
+  # Granulare Checks (C1/M1/N1/Pitfalls/Lit-Verz-Drift) laufen fest in der Skill-/Validator-Logik.
+  # Falls ein einzelner Check übersprungen werden muss: /preflight --skip-<check> (statt Config-Flag).
 
 docx_frozen:
   enabled: false                        # Wird automatisch true sobald _final_konform.docx existiert
@@ -47,55 +42,63 @@ docx_frozen:
   warn_on_markdown_edit: true           # /write + /rewrite warnen bei Markdown-Edits
 
 r_toolchain:
-  enabled: false                        # Wird true wenn config.projekt.methodik = "empirisch-quantitativ" mit R
+  enabled: false                        # Auto-true wenn projekt.methodik = "empirisch-quantitativ" (sonst ignoriert)
   scripts_dir: "scripts/r"              # R-Skripte hier ablegen
   data_dir: "data"                      # Datensätze hier
   outputs_dir: "output/r-results"       # Plots, Tabellen aus R
   reproducibility_check: true           # R-Skripte müssen idempotent durchlaufen
   citation_hook: true                   # Plots/Tables aus R müssen im Text referenziert sein
 
+# Autonomer End-to-End-Lauf (/auto)
+workflow:
+  auto:
+    gates: ["topic", "outline"]         # Menschliche Halte: nach Brainstorming + nach Gliederung. [] = voll autonom
+    max_autofix_attempts: 3             # Validator/Preflight-Funde so oft selbst korrigieren, dann stoppen + melden
+    audit_log: "output/auto-run.log"    # Protokoll aller Auto-Approves und Auto-Fixes
+
 autor:
   name: ""
   matrikelnummer: ""
-  hochschule: ""
+  hochschule: "IU Internationale Hochschule"
   fakultaet: ""
   studiengang: ""
 
 betreuung:
-  erstgutachter: ""
-  zweitgutachter: ""
+  erstgutachter: ""                     # Tutor:in
+  # zweitgutachter: ""                  # IU-Fallstudien: nur ein:e Tutor:in — Feld nicht genutzt
 
 abgabe:
-  datum: ""                             # Format: TT.MM.JJJJ
+  datum: ""                             # Format: TT.MM.JJJJ — PFLICHT vor finalem Build (Validator F9)
   ort: ""
 
 formatierung:
-  zitationsstil: ""                     # harvard-inline | apa7 | ieee | chicago
+  zitationsstil: "apa7"                 # IU-Standard seit 01.10.2025 (harvard/ieee/chicago archiviert)
   seitenumfang:
-    min: 40
-    max: 60
-  schriftart: "Times New Roman"
-  schriftgroesse: 12
+    min: 7                              # IU-Fallstudie Textteil
+    max: 10
+  schriftart: "Arial"
+  schriftgroesse: 11
   zeilenabstand: 1.5
   seitenränder:
-    oben: 2.5                           # in cm
-    unten: 2.5
-    links: 2.5
-    rechts: 2.5
+    oben: 2.0                           # in cm (IU: 2,0 rundum)
+    unten: 2.0
+    links: 2.0
+    rechts: 2.0
 
 verzeichnisse:
   inhaltsverzeichnis: true
-  abbildungsverzeichnis: true
-  tabellenverzeichnis: true
+  abbildungsverzeichnis: false          # nur falls Abbildungen vorhanden
+  tabellenverzeichnis: false            # nur falls Tabellen mit SEQ-Caption vorhanden
   abkuerzungsverzeichnis: true
   literaturverzeichnis: true
-  abstract: false                        # Abstract/Zusammenfassung vor der Einleitung
-  hilfsmittelverzeichnis: false         # Nur bei bestimmten Hochschulen (z.B. HTWD)
   selbststaendigkeitserklaerung: true
-  sperrvermerk: false
+  # IU: nicht genutzt — separat via myCampus bzw. keine IU-Anforderung:
+  # abstract: false
+  # hilfsmittelverzeichnis: false
+  # sperrvermerk: false
 
 logo:
-  pfad: ""                              # z.B. "assets/img/logo.jpg" -- wird automatisch erkannt
+  pfad: ""                              # z. B. "assets/img/iu-logo.png" — wird automatisch erkannt
   erkannt: false
 
 fortschritt:

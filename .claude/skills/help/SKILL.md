@@ -21,19 +21,24 @@ Falls die Datei nicht existiert oder Phase 0: Zeige Ersteinrichtungs-Hilfe.
 
 Verfügbare Befehle:
 
-  /setup            Projekt einrichten (einmaliges Interview)
-  /next             Nächste Phase starten oder fortsetzen
+  /auto             Autonomer End-to-End-Lauf 1→7 (stoppt nur an Thema + Gliederung)
+  /setup            Projekt einrichten (Auto-Detect aus Uni-Ordnern)
+  /next             Nächste Phase starten oder fortsetzen (Einzelschritt)
   /status           Aktuellen Fortschritt anzeigen (mit Self-Healing)
   /write [X.X]      Bestimmtes Kapitel schreiben (Phase 5)
   /review [X.X]     Kapitel zur Qualitätsprüfung (Phase 6, 3 Agenten parallel)
+  /review --all     Alle ungeprüften Kapitel nacheinander prüfen
   /cite             Neue Quelle oder Zitat hinzufügen
-  /compile          LaTeX kompilieren und PDF erstellen (Phase 7)
-  /compile draft    Entwurfs-PDF mit Platzhaltern für fehlende Kapitel
+  /preflight        Blockierendes Pre-Compile-Gate (Validator + Drift + Pitfalls)
+  /compile          IU-DOCX + PDF bauen (Phase 7, via scripts/build_docx.py)
+  /compile draft    Entwurf bauen, auch mit fehlenden Kapiteln
+  /apply-feedback   Reviewer-Feedback ins finale DOCX patchen (Frozen-Mode)
+  /codex-review     Externer Codex-Review (gpt-5.5 / xhigh)
   /approve [X.X]    Phase oder einzelnes Kapitel freigeben (draft -> final)
   /wordcount        Wortanzahl und Seitenschätzung anzeigen
   /rewrite [X.X]    Kapitel komplett neu schreiben
   /reset [phase]    Auf frühere Phase zurücksetzen (archiviert spätere Ergebnisse)
-  /validate         Projektkonfiguration und Datenintegrität prüfen
+  /validate         Projektkonfiguration und Datenintegrität prüfen (--auto-repair)
   /help             Diese Hilfe anzeigen
 ```
 
@@ -107,10 +112,10 @@ Drei spezialisierte Prüfagenten analysieren deine Texte:
 
 **Phase 7 (Finalisierung):**
 ```
-Die Arbeit wird als PDF erstellt.
-- /compile startet den LaTeX-Export und die Kompilierung
-- Stelle sicher dass LaTeX installiert ist (latexmk + xelatex)
-- Das PDF findest du unter output/phase-07-latex/latex/thesis.pdf
+Die Arbeit wird als IU-konforme DOCX (Primärartefakt) und PDF gebaut.
+- /compile ruft scripts/build_docx.py (python-docx) auf
+- PDF wird per LibreOffice aus der DOCX konvertiert (optional)
+- Ergebnis: output/phase-07-docx/<datei>.docx (+ .pdf)
 ```
 
 ### 4. Kontexthilfe für besondere Modi
@@ -162,18 +167,20 @@ Häufige Fragen:
 
   Wo finde ich meine Arbeit?
   -> Markdown: output/phase-05-writing/final/
-  -> PDF: output/phase-07-latex/latex/thesis.pdf
+  -> DOCX/PDF: output/phase-07-docx/
 
   Wie lege ich mein Hochschul-Logo ab?
-  -> Als JPG oder PNG in assets/img/
+  -> Als JPG oder PNG in assets/img/ (wird automatisch erkannt)
 
   Wo kann ich Schreibpräferenzen einstellen?
   -> In der Datei preferences.md
 
-  LaTeX ist nicht installiert -- was tun?
-  -> /compile prüft und bietet Installation an
-  -> macOS: brew install --cask mactex-no-gui
-  -> Linux: sudo apt install texlive-xetex texlive-fonts-extra latexmk
+  Kann ich alles automatisch laufen lassen?
+  -> Ja: /auto läuft 1→7 durch und stoppt nur bei Thema + Gliederung.
+
+  Das PDF wird nicht erzeugt -- was tun?
+  -> PDF braucht LibreOffice (soffice). Fehlt es, bleibt die DOCX das
+     Primärartefakt; PDF später via "Speichern als PDF" in Word/LibreOffice.
 
   Ausführliche Dokumentation:
   -> docs/einstieg.md
