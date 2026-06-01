@@ -5,9 +5,9 @@
 
 Deine wissenschaftliche Arbeit, von der ersten Idee bis zum fertigen PDF. Komplett im Terminal mit [Claude Code](https://claude.com/claude-code).
 
-Du triffst die Entscheidungen und lieferst die Quellen. Claude übernimmt Strukturierung, Kapitelplanung, wissenschaftliches Schreiben, Qualitätsprüfung und LaTeX-Export. Ein durchgehender Workflow für Seminararbeiten, Hausarbeiten, Bachelorarbeiten, Masterarbeiten und Dissertationen.
+Du triffst die Entscheidungen und lieferst die Quellen. Claude übernimmt Strukturierung, Kapitelplanung, wissenschaftliches Schreiben, Qualitätsprüfung und den DOCX-Build (+ PDF). Optimiert für IU-Fallstudien/Seminararbeiten (Deutsch, APA7, 7–10 Seiten). Mit `/auto` läuft die ganze Arbeit unbeaufsichtigt durch und stoppt nur an zwei Freigaben (Thema, Gliederung).
 
-> **English:** AI-powered academic writing framework for [Claude Code](https://claude.com/claude-code). Supports seminar papers through dissertations. Currently German-language only.
+> **English:** AI-powered academic writing framework for [Claude Code](https://claude.com/claude-code), tuned for IU case studies. German-language, APA7, DOCX+PDF output.
 
 ## Schnellstart
 
@@ -54,41 +54,43 @@ Ab hier wiederholst du `/next` und `/approve`, bis die Arbeit fertig ist.
 | 3 · Zitat-Zuordnung | Quellen den Kapiteln zuweisen* |
 | 4+5 · Planung + Schreiben | Kapitel einzeln planen und direkt schreiben |
 | 6 · Qualitätsprüfung | 3 Agenten prüfen parallel |
-| 7 · Finalisierung | LaTeX-Export und PDF |
+| 7 · Finalisierung | IU-DOCX (Primärartefakt) + PDF |
 
 *Phase 3 wird automatisch übersprungen wenn du im Setup "keine Quellen" gewählt hast.
 
 ## Features
 
-- **7-Phasen-Workflow** von Brainstorming bis PDF
-- **13 Slash Commands** für jeden Schritt
-- **Interaktives Setup** mit geführtem Interview und Multiple-Choice-Fragen
+- **Autonomer Lauf** (`/auto`): Phase 1→7 unbeaufsichtigt, Halt nur an Thema + Gliederung, Auto-Fix-Schleife bei Validator-Funden
+- **7-Phasen-Workflow** von Brainstorming bis fertigem Dokument
+- **Interaktives Setup** mit Auto-Detect aus den Uni-Ordnern
 - **Verschränktes Arbeiten** (Kapitel einzeln planen und direkt schreiben)
 - **Flexible Quellenarbeit** (BibTeX, Zotero, PDF-Extraktion, manuell oder ohne Quellen)
-- **4 Zitationsstile** (Harvard Inline, APA 7, IEEE, Chicago)
-- **Konfigurierbar** für jede Hochschule (Ränder, Schriftart, Deckblatt, Logo)
-- **3 parallele Reviewer** für Sprache, Zitationen und Argumentation
-- **LaTeX-Export** mit automatischer PDF-Erstellung
-- **Draft-Kompilierung** für PDF-Vorschau auch mit unvollständigen Kapiteln
-- **Self-Healing** erkennt und repariert inkonsistente Projektzustände
+- **APA7** als IU-Standard (Harvard/IEEE/Chicago archiviert unter `docs/archive/`)
+- **Kanonischer DOCX-Builder** (`scripts/build_docx.py`, config-parametrisiert) + PDF via LibreOffice
+- **3 parallele Reviewer** für Sprache, Zitationen und Argumentation, plus blockierendes `/preflight`-Gate
+- **Self-Healing** erkennt und repariert inkonsistente Projektzustände (`/validate --auto-repair`)
 
 ## Befehle
 
 | Befehl | Beschreibung |
 |--------|-------------|
-| `/setup` | Projekt einrichten (interaktives Interview) |
-| `/next` | Nächste Phase starten |
+| `/auto` | **Autonomer Lauf 1→7** (Halt nur an Thema + Gliederung) |
+| `/setup` | Projekt einrichten (Auto-Detect aus Uni-Ordnern) |
+| `/next` | Nächste Phase starten (Einzelschritt) |
 | `/status` | Fortschritt anzeigen (mit Self-Healing) |
 | `/write [X.X]` | Kapitel schreiben |
-| `/review [X.X]` | Qualitätsprüfung (3 Agenten parallel) |
+| `/review [X.X]` · `--all` | Qualitätsprüfung (3 Agenten parallel) |
 | `/cite` | Quelle hinzufügen (PDF, manuell, BibTeX, Zotero) |
-| `/compile` | LaTeX zu PDF (mit Auto-Install) |
-| `/compile draft` | Entwurfs-PDF mit Platzhaltern |
+| `/preflight` | Blockierendes Pre-Compile-Gate |
+| `/compile` | IU-DOCX + PDF bauen |
+| `/compile draft` | Entwurf, auch mit fehlenden Kapiteln |
+| `/apply-feedback` | Reviewer-Feedback ins finale DOCX patchen |
+| `/codex-review` | Externer Codex-Review (gpt-5.5 / xhigh) |
 | `/approve [X.X]` | Phase oder Kapitel freigeben |
 | `/wordcount` | Wortanzahl und Seitenschätzung |
 | `/rewrite [X.X]` | Kapitel komplett neu schreiben |
 | `/reset [phase]` | Auf frühere Phase zurücksetzen |
-| `/validate` | Projektkonfiguration prüfen |
+| `/validate` | Projektkonfiguration prüfen (`--auto-repair`) |
 | `/help` | Kontextsensitive Hilfe |
 
 ## Quellen importieren
@@ -106,17 +108,18 @@ Vier Wege:
 ## Voraussetzungen
 
 - [Claude Code CLI](https://claude.com/claude-code) installiert
-- **LaTeX** für PDF-Export (wird bei `/setup` oder `/compile` automatisch geprüft, Installation wird angeboten)
-  - macOS: `brew install --cask mactex-no-gui`
-  - Linux: `sudo apt install texlive-xetex texlive-fonts-extra texlive-lang-german latexmk`
+- **python-docx** (Pflicht für den DOCX-Build): `pip install python-docx`
+- **LibreOffice** (optional, für die PDF-Konvertierung der DOCX): ohne LibreOffice bleibt die DOCX das Primärartefakt; PDF dann via „Speichern als PDF" in Word/LibreOffice
+  - macOS: `brew install --cask libreoffice`
+  - Linux: `sudo apt install libreoffice`
 
 ## Dokumentation
 
 - [Einstieg](docs/einstieg.md) (Schritt-für-Schritt-Anleitung)
 - [Konfiguration](docs/konfiguration.md) (alle config.yaml-Optionen)
 - [Literaturdatenbank](docs/literaturdatenbank.md) (Format, BibTeX, Zotero)
-- [Eigene Hochschule](docs/eigene-hochschule.md) (Framework anpassen)
 - [FAQ](docs/faq.md) (häufige Fragen)
+- Andere Hochschulen / Zitierstile: archiviert unter [docs/archive/](docs/archive/)
 
 ## Contributing
 

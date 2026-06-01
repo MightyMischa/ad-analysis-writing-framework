@@ -1,15 +1,17 @@
-# Scientific Writing Framework
+# Scientific Writing Framework (v3, IU-Fallstudien)
 
-Deine wissenschaftliche Arbeit, von der ersten Idee bis zum fertigen PDF.
+Deine IU-Fallstudie, von der ersten Idee bis zur fertigen DOCX (+ PDF).
 
-Du triffst die Entscheidungen und lieferst die Quellen. Claude übernimmt Strukturierung, Kapitelplanung, wissenschaftliches Schreiben, Qualitätsprüfung und LaTeX-Export. Ein durchgehender Workflow für Seminararbeiten, Hausarbeiten, Bachelorarbeiten, Masterarbeiten und Dissertationen. Alles im Terminal, alles in einem Projekt.
+Du triffst die Entscheidungen und lieferst die Quellen. Claude übernimmt Strukturierung, Kapitelplanung, wissenschaftliches Schreiben, Qualitätsprüfung und den DOCX-Build. Optimiert für IU-Fallstudien/Seminararbeiten (Deutsch, APA7, 7–10 Seiten). Alles im Terminal, alles in einem Projekt.
 
 ## Schnellstart
 
-1. `/setup` ausführen (scannt Uni-Ordner automatisch, ~30 Sekunden Bestätigung)
-2. `/next` ausführen (startet die nächste Phase automatisch)
-3. Output prüfen und mit `/approve` freigeben
-4. Wiederholen bis die Arbeit fertig ist
+**Autonom (empfohlen):**
+- `/setup` ausführen (scannt Uni-Ordner automatisch, ~30 Sekunden Bestätigung)
+- `/auto` ausführen — läuft Phase 1→7 durch und stoppt nur an zwei Stellen zur Freigabe: nach dem **Thema** (Brainstorming) und nach der **Gliederung**. Danach unbeaufsichtigt bis DOCX+PDF, mit Auto-Fix bei Validator-Funden.
+
+**Manuell (Schritt für Schritt):**
+1. `/setup` · 2. `/next` (nächste Phase) · 3. mit `/approve` freigeben · 4. wiederholen bis fertig.
 
 ## Workflow
 
@@ -22,7 +24,7 @@ Du triffst die Entscheidungen und lieferst die Quellen. Claude übernimmt Strukt
 | 3 · Zitat-Zuordnung | Quellen den Kapiteln zuweisen |
 | 4+5 · Planung + Schreiben | Kapitel einzeln planen und direkt schreiben |
 | 6 · Qualitätsprüfung | Sprache, Zitate, Argumentation (3 Agenten parallel) |
-| 7 · Finalisierung | LaTeX-Export, Abstract, PDF |
+| 7 · Finalisierung | IU-DOCX (Primärartefakt) + PDF via `scripts/build_docx.py` |
 
 Phase 3 wird automatisch übersprungen wenn `quellen.workflow: "keine"` gesetzt ist.
 
@@ -32,19 +34,20 @@ In Phase 4 und 5 wird verschränkt gearbeitet: Ein Kapitel planen, direkt schrei
 
 | Befehl | Funktion |
 |--------|----------|
-| `/setup` | Projekt einrichten (interaktives Interview) |
-| `/next` | Nächste Phase starten |
+| `/auto` | **Autonomer End-to-End-Lauf 1→7** (stoppt nur an Thema + Gliederung, Auto-Fix-Schleife) |
+| `/setup` | Projekt einrichten (Auto-Detect aus Uni-Ordnern) |
+| `/next` | Nächste Phase starten (Einzelschritt) |
 | `/status` | Fortschritt anzeigen (mit Self-Healing) |
 | `/write [X.X]` | Kapitel schreiben |
-| `/review [X.X]` | Qualitätsprüfung (3 Agenten parallel) |
+| `/review [X.X]` · `/review --all` | Qualitätsprüfung (3 Agenten parallel; `--all` über alle Kapitel) |
 | `/cite` | Quelle hinzufügen (PDF, manuell, BibTeX, Zotero) |
-| `/compile` | LaTeX kompilieren zu PDF (mit Auto-Install) |
-| `/compile draft` | Entwurfs-PDF mit Platzhaltern für fehlende Kapitel |
+| `/compile` | IU-DOCX + PDF bauen (`scripts/build_docx.py`, PDF via LibreOffice) |
+| `/compile draft` | Entwurf bauen, auch mit fehlenden Kapiteln |
 | `/approve [X.X]` | Phase oder Kapitel freigeben (draft → final) |
 | `/wordcount` | Wortanzahl und Seitenschätzung |
 | `/rewrite [X.X]` | Kapitel komplett neu schreiben |
 | `/reset [phase]` | Auf frühere Phase zurücksetzen (archiviert Ergebnisse) |
-| `/validate` | Projektkonfiguration und Datenintegrität prüfen |
+| `/validate` | Projektkonfiguration und Datenintegrität prüfen (`--auto-repair` für stille Reparatur) |
 | `/preflight` | Blockierendes Pre-Compile-Gate (validate + Lit-Verz-Drift + Pitfalls + Wordcount) |
 | `/apply-feedback` | Reviewer-Feedback ins finale DOCX einarbeiten (preserves Format-Fixes) |
 | `/codex-review` | Externer Codex-Review (gpt-5.5 / xhigh) gegen LESSONS.md |
@@ -94,6 +97,7 @@ Schreibpräferenzen: @preferences.md
 | `output/` | Generierte Inhalte (pro Phase, draft/final) |
 | `docs/` | Ausführliche Dokumentation |
 | `LESSONS.md` | Reviewer-Lessons (Format, Quellen, Inhalt, Sprache) — nach jedem Review erweitern |
+| `scripts/build_docx.py` | **Kanonischer DOCX-Builder** (config-parametrisiert) + PDF via LibreOffice |
 | `scripts/validate_docx.py` | Automatischer DOCX-Validator gegen IU-Vorgaben (F/S/I/C/M/N-Codes) |
 | `scripts/check_lit_verz_drift.py` | Diff DOCX-Lit-Verz vs. literature.md (bidirektional) |
 | `scripts/validate_r_reproducibility.py` | R-Skript-Reproduzierbarkeit (R1–R5), aktiv wenn r_toolchain.enabled |
