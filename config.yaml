@@ -1,0 +1,105 @@
+# === Scientific Writing Framework - Projektkonfiguration ===
+# Diese Datei wird von /setup automatisch generiert.
+# Du kannst sie auch manuell bearbeiten -- Änderungen werden beim nächsten /next berücksichtigt.
+#
+# Starte /setup um diese Datei interaktiv auszufüllen.
+
+projekt:
+  titel: ""                             # Wird in Phase 1/2 festgelegt
+  sprache: "de"                         # de (Englisch-Support in Planung)
+  typ: ""                               # seminararbeit | hausarbeit | bachelor | master | dissertation | fallstudie
+  methodik: ""                          # literatur | empirisch-qualitativ | empirisch-quantitativ
+  kurs_modul: ""                        # IU-Modulkürzel z. B. "DLBFTBCKW01" — pflicht bei Fallstudien
+  kurs_titel: ""                        # Klartext z. B. "Blockchain und Kryptowährungen"
+  course_book_pfad: ""                  # Pfad zum Lernskript-PDF, z. B. "../Blockchain/001-2024-0129_DLBFTBCKW01_Course_Book.pdf"
+
+quellen:
+  workflow: ""                          # bibtex | pdf-extraktion | manuell | keine
+  import_pfad: ""                       # Pfad zur .bib oder Zotero-Exportdatei
+
+latex:
+  auto_compile: true                    # Automatische Neukompilierung bei .tex-Änderungen
+  installation_geprüft: false          # Wird von /setup oder /compile gesetzt
+
+codex:
+  auto_review: true                     # Nach jedem Schritt automatisch /codex-review aufrufen
+  model: "gpt-5.5"                      # Default aus ~/.codex/config.toml falls leer
+  reasoning_effort: "xhigh"             # Maximale Reasoning-Tiefe
+  quiet_in_auto: true                   # Bei Auto-Hooks nur Hochpriorität-Funde ausgeben
+  log_dir: "output/phase-06-review"     # Codex-Outputs hier archivieren
+  trigger_on:                           # Wann Auto-Codex feuert (User-Wahl: mittel)
+    approve_phase_6: true               # Nach Phase-6-Approve
+    pre_compile: true                   # Vor jedem /compile
+    chapter_approve: false              # Nach jedem Kapitel-Approve (aggressiv)
+
+preflight:
+  block_on_violation: true              # /compile + /approve werden blockiert bei Verstößen
+  course_book_check: true               # Mindestens eine Course-Book-Citation Pflicht
+  methodengrenzen_check: true           # Fazit muss Limitations-Marker enthalten
+  number_source_uniqueness: true        # Konkrete Zahlen brauchen genau eine Primärquelle
+  pitfall_strings: true                 # Reviewer-Pitfall-Strings dürfen nicht im Volltext stehen
+  lit_verz_drift: true                  # DOCX-Lit-Verz vs. literature.md abgleichen
+
+docx_frozen:
+  enabled: false                        # Wird automatisch true sobald _final_konform.docx existiert
+  guard_path: "output/phase-07-docx/*_final_konform*.docx"
+  block_overwrite: true                 # /compile weigert sich, _final_konform zu überschreiben
+  warn_on_markdown_edit: true           # /write + /rewrite warnen bei Markdown-Edits
+
+r_toolchain:
+  enabled: false                        # Wird true wenn config.projekt.methodik = "empirisch-quantitativ" mit R
+  scripts_dir: "scripts/r"              # R-Skripte hier ablegen
+  data_dir: "data"                      # Datensätze hier
+  outputs_dir: "output/r-results"       # Plots, Tabellen aus R
+  reproducibility_check: true           # R-Skripte müssen idempotent durchlaufen
+  citation_hook: true                   # Plots/Tables aus R müssen im Text referenziert sein
+
+autor:
+  name: ""
+  matrikelnummer: ""
+  hochschule: ""
+  fakultaet: ""
+  studiengang: ""
+
+betreuung:
+  erstgutachter: ""
+  zweitgutachter: ""
+
+abgabe:
+  datum: ""                             # Format: TT.MM.JJJJ
+  ort: ""
+
+formatierung:
+  zitationsstil: ""                     # harvard-inline | apa7 | ieee | chicago
+  seitenumfang:
+    min: 40
+    max: 60
+  schriftart: "Times New Roman"
+  schriftgroesse: 12
+  zeilenabstand: 1.5
+  seitenränder:
+    oben: 2.5                           # in cm
+    unten: 2.5
+    links: 2.5
+    rechts: 2.5
+
+verzeichnisse:
+  inhaltsverzeichnis: true
+  abbildungsverzeichnis: true
+  tabellenverzeichnis: true
+  abkuerzungsverzeichnis: true
+  literaturverzeichnis: true
+  abstract: false                        # Abstract/Zusammenfassung vor der Einleitung
+  hilfsmittelverzeichnis: false         # Nur bei bestimmten Hochschulen (z.B. HTWD)
+  selbststaendigkeitserklaerung: true
+  sperrvermerk: false
+
+logo:
+  pfad: ""                              # z.B. "assets/img/logo.jpg" -- wird automatisch erkannt
+  erkannt: false
+
+fortschritt:
+  aktuelle_phase: 0                     # 0 = Noch nicht eingerichtet
+  abgeschlossene_phasen: []
+  gestartet_am: ""
+  letztes_update: ""

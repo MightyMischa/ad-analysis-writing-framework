@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Vorlage fuer ein Reviewer-Feedback-Patch-Skript.
+
+Erzeugt vom Skill /apply-feedback. Wende NICHT direkt an — nutze /apply-feedback,
+um eine projektspezifische Variante zu generieren.
+
+Konvention:
+  SRC: aktuelles _final_konform*.docx
+  DST: gleicher Name + Suffix _v<N+1>.docx
+  Operationen:
+    A) Substring-Replace im einzigen Run eines Absatzes
+    B) Neuer Absatz nach Anker-Paragraph (Style + Formatierung kopiert)
+"""
+
+from copy import deepcopy
+from pathlib import Path
+
+from docx import Document
+
+PROJECT = Path("__PROJECT_ABSOLUTE_PATH__")
+SRC = PROJECT / "output" / "phase-07-docx" / "__SRC_DOCX__"
+DST = PROJECT / "output" / "phase-07-docx" / "__DST_DOCX__"
+
+
+def replace_in_single_run_paragraph(p, old: str, new: str) -> None:
+    """Ersetzt old durch new im einzigen Run des Absatzes.
+
+    Faellt explizit fehl, wenn der Run-Count != 1 oder der Anker fehlt — kein
+    stillschweigendes No-Op.
+    """
+    if len(p.runs) != 1:
+        raise RuntimeError(
+            f"Paragraph '{p.text[:60]}...' hat {len(p.runs)} Runs, erwartet exakt 1. "
+            "Manueller Eingriff oder mehrteiliger Patch noetig."
+        )
+    if old not in p.runs[0].text:
+        raise RuntimeError(
+            f"Anker nicht gefunden in Paragraph: {old!r}\nVolltext: {p.text[:200]!r}"
+        )
+    p.runs[0].text = p.runs[0].text.replace(old, new)
+
+
+def insert_paragraph_after(target_para, text: str):
+    """Klont target_para mit Style + Formatierung, ersetzt Text und fuegt
+    direkt nach dem Anker ein."""
+    new_el = deepcopy(target_para._element)
+    target_para._element.addnext(new_el)
+    from docx.text.paragraph import Paragraph
+
+    new_para = Paragraph(new_el, target_para._parent)
+    src_run = target_para.runs[0] if target_para.runs else None
+    for r in list(new_para.runs):
+        r._element.getparent().remove(r._element)
+    new_run = new_para.add_run(text)
+    if src_run is not None:
+        new_run.font.name = src_run.font.name
+        if src_run.font.size is not None:
+            new_run.font.size = src_run.font.size
+        if src_run.bold is not None:
+            new_run.bold = src_run.bold
+        if src_run.italic is not None:
+            new_run.italic = src_run.italic
+    return new_para
+
+
+def main() -> None:
+    if not SRC.exists():
+        raise FileNotFoundError(f"Source DOCX missing: {SRC}")
+
+    doc = Document(str(SRC))
+    paras = doc.paragraphs
+
+    # === BEGIN PATCHES (von /apply-feedback generiert) ===
+
+    # PATCH_A: <Beschreibung>
+    # para = next(p for p in paras if "<Anker-Substring>" in p.text)
+    # replace_in_single_run_paragraph(para, "<old>", "<new>")
+    # print("✓ A) <Kurzbeschreibung>")
+
+    # PATCH_B: <Beschreibung>
+    # para = next(p for p in paras if p.text.startswith("<Start-Substring>"))
+    # insert_paragraph_after(para, "<Neuer Absatz-Text>")
+    # print("✓ B) <Kurzbeschreibung>")
+
+    # === END PATCHES ===
+
+    doc.save(str(DST))
+    print(f"\n✓ Gespeichert: {DST.relative_to(PROJECT)}")
+
+
+if __name__ == "__main__":
+    main()
