@@ -490,9 +490,16 @@ def get_used_sources(chapters_text):
         if is_institution(autor_full):
             name = autor_full.split("/")[0].strip()
             patterns += [f"{name} ({year}", f"{name}, {year}"]
+            # Abkürzung: explizites abk-Feld bevorzugen, sonst dynamisch aus dem Text
+            # lernen ("Europäische Zentralbank [EZB] ..." → EZB). Kein hartcodiertes Mapping.
             abk = e.get("abk", "")
+            if not abk:
+                m = re.search(re.escape(name) + r"\s*\[([A-Za-zÄÖÜ.&/ ]{2,40}?)\]", chapters_text)
+                if m:
+                    abk = m.group(1).strip()
             if abk:
-                patterns += [f"{abk} ({year}", f"{abk}, {year}", f"[{abk}] ({year}", f"[{abk}], {year}"]
+                patterns += [f"{abk} ({year}", f"{abk}, {year}",
+                             f"[{abk}] ({year}", f"[{abk}], {year}"]
         else:
             first = autor_full.split("/")[0].split(",")[0].strip()
             patterns += [f"{first} ({year}", f"{first}, {year}",
@@ -503,6 +510,7 @@ def get_used_sources(chapters_text):
                     patterns += [f"{surnames[0]} & {surnames[1]} ({year}",
                                  f"{surnames[0]} & {surnames[1]}, {year}",
                                  f"{surnames[0]} und {surnames[1]} ({year}",
+                                 f"{surnames[0]} und {surnames[1]}, {year}",
                                  f"{surnames[0]}/{surnames[1]} ({year}"]
                 else:
                     patterns.append(f"{first} et al.")

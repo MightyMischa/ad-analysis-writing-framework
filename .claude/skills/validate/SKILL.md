@@ -127,3 +127,15 @@ WARNUNGEN:
 [Falls alles OK:]
 Keine Probleme gefunden. Dein Projekt ist konsistent.
 ```
+
+## Auto-Repair-Modus (`/validate --auto-repair`)
+
+Für den autonomen Lauf (`/auto`) und CI: repariert **ohne Rückfrage** und meldet nur,
+was geändert wurde:
+- `progress.json` an den tatsächlichen Dateistand angleichen (Phasen/abgeschlossene_phasen).
+- Fehlende Phasen-Verzeichnisse (`draft/`, `final/`) anlegen.
+- Leere `final/` aus vorhandenem, eindeutigem `draft/` nachziehen (nur wenn unzweideutig).
+
+NICHT automatisch repariert (weil inhaltliche Entscheidung): `literature.md`-Fehler
+(verwaiste/duplizierte quelle_id, YAML-Syntax) und Config-Pflichtfeld-Fehler — diese
+werden als Blocker zurückgegeben, damit `/auto` sie meldet statt stillschweigend zu raten.

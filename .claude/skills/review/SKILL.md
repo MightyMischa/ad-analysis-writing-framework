@@ -89,3 +89,23 @@ Wenn `false`: Skip.
 
 - "Prüfe die Änderungen und nutze /approve um das Review freizugeben."
 - Falls Codex zusätzliche Funde meldet: zuerst diese adressieren.
+
+## Batch-Modus (`/review --all`)
+
+Prüft ALLE geschriebenen, noch ungeprüften Kapitel nacheinander:
+
+1. Ermittle aus `thesis-structure.yaml` alle Kapitel, die in `phase-05-writing/final/`
+   vorliegen, aber noch kein Review in `phase-06-review/final/[X-X]-reviewed.md` haben.
+2. Führe für jedes dieser Kapitel den 3-Agenten-Review (Schritt 3–6) aus.
+3. Mechanische Korrekturen (Sprache, Zitationsformat) werden direkt umgesetzt;
+   Argumentations-Funde, die menschliche Entscheidung brauchen, werden gesammelt gemeldet.
+4. Abschluss-Tabelle über alle Kapitel mit Schwere-Einstufung.
+
+## Auto-Modus (vom `/auto`-Orchestrator genutzt)
+
+Wenn aus `/auto` aufgerufen (oder mit `--auto`):
+- Mechanische Korrekturen (Sprach-Pitfalls, APA-Format, Wortwiederholungen,
+  verbotene Wörter) werden OHNE Rückfrage angewendet und in `output/auto-run.log` protokolliert.
+- Nur **inhaltlich-strukturelle** Funde hoher Schwere (z. B. fehlender roter Faden,
+  unbelegte Kernbehauptung) werden als Blocker gesammelt und am Ende des Laufs gemeldet.
+- Kein interaktives "Soll ich umsetzen?" — der Lauf bleibt unbeaufsichtigt.

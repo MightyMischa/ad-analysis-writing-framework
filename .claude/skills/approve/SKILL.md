@@ -140,3 +140,16 @@ Nächster Schritt: /next um den Text für Kapitel [X.X] zu schreiben.
 Kapitel [X.X] geschrieben und freigegeben.
 Nächster Schritt: /next um Kapitel [X+1.X] zu planen.
 ```
+
+## Auto-Modus (vom `/auto`-Orchestrator genutzt)
+
+Wenn aus `/auto` aufgerufen (oder mit `--auto`):
+- **Schritt 3 (Bestätigung) entfällt** — die Freigabe erfolgt ohne interaktive Rückfrage.
+- Jede Auto-Freigabe wird in `output/auto-run.log` protokolliert (Phase/Kapitel, Timestamp, Dateien).
+- Die Gates aus Schritt 6/6b laufen weiterhin:
+  - Bei Phase-7-Approval läuft `/preflight`. Blockierende Verstöße werden NICHT stillschweigend
+    übergangen, sondern an die **Auto-Fix-Schleife** von `/auto` übergeben (Korrekturversuch,
+    dann erneuter Approve-Versuch; nach `config.workflow.auto.max_autofix_attempts` → Stopp + Report).
+  - Auto-Codex feuert wie konfiguriert; Hochprioritäts-Funde gehen ebenfalls in die Auto-Fix-Schleife.
+- Die beiden menschlichen Gates (`config.workflow.auto.gates`, Default `topic`, `outline`) werden
+  von `/auto` VOR dem jeweiligen Approve gesetzt — dieser Skill prüft sie nicht selbst.
