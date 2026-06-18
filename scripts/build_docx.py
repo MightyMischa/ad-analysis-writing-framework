@@ -64,6 +64,7 @@ pruefungsform = "Fallstudie" if typ == "fallstudie" else typ.capitalize()
 # Formatierung (IU-Defaults)
 FONT = cfg("formatierung.schriftart", "Arial")
 FSIZE = int(cfg("formatierung.schriftgroesse", 11))
+TFSIZE = int(cfg("formatierung.tabellen_schriftgroesse", 10))
 LINESP = float(cfg("formatierung.zeilenabstand", 1.5))
 M_TOP = float(cfg("formatierung.seitenränder.oben", 2.0))
 M_BOT = float(cfg("formatierung.seitenränder.unten", 2.0))
@@ -275,7 +276,8 @@ section0.footer.is_linked_to_previous = False
 if SHOW_TOC:
     p_toc_title = doc.add_paragraph()
     p_toc_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_toc_title.style = doc.styles["Heading 1"]
+    # Bewusst KEIN Heading 1: sonst listet sich das Inhaltsverzeichnis selbst.
+    # Optik bleibt durch die Run-Formatierung (14pt, fett, schwarz) identisch.
     r = p_toc_title.add_run("Inhaltsverzeichnis")
     set_font(r, FONT, 14, bold=True); r.font.color.rgb = RGBColor(0, 0, 0)
     p_toc_title.paragraph_format.space_after = Pt(18)
@@ -286,6 +288,8 @@ if SHOW_TOC:
 if SHOW_TAB:
     add_empty_para(doc, 1)
     p_tab_title = doc.add_paragraph()
+    # Heading 1, damit das Tabellenverzeichnis als Eintrag im Inhaltsverzeichnis erscheint.
+    p_tab_title.style = doc.styles["Heading 1"]
     rr = p_tab_title.add_run("Tabellenverzeichnis")
     set_font(rr, FONT, 14, bold=True); rr.font.color.rgb = RGBColor(0, 0, 0)
     p_tab_title.paragraph_format.space_before = Pt(18)
@@ -342,36 +346,101 @@ def add_table_caption(doc, table_index, caption_text):
     r2 = p.add_run(f": {caption_text}"); set_font(r2, FONT, 10); r2.font.color.rgb = RGBColor(0, 0, 0)
 
 
+TWIPS_PER_CM = 566.93
+
+
+def compute_col_widths_cm(header_cells, body_rows, total_cm, min_cm=1.0, cap=100):
+    """Inhaltsproportionale Spaltenbreiten (Summe = total_cm).
+
+    Jede Spalte erhaelt mindestens min_cm; der Rest wird proportional zur
+    laengsten Zelle je Spalte verteilt (gedeckelt bei cap Zeichen, damit eine
+    sehr lange Textspalte die anderen nicht ausstarrt). Verhindert, dass eine
+    lange Spalte (z. B. die User-Story-Spalte) bei autofit gleich schmal wie
+    eine winzige Spalte wird.
+    """
+    n = len(header_cells)
+    if n == 0:
+        return []
+    nat = []
+    for j in range(n):
+        cells = [header_cells[j]] + [r[j] for r in body_rows if j < len(r)]
+        nat.append(max((len(c.strip()) for c in cells), default=1))
+    capped = [min(c, cap) for c in nat]
+    s = sum(capped) or 1
+    remaining = max(0.0, total_cm - min_cm * n)
+    return [min_cm + remaining * (c / s) for c in capped]
+
+
 def add_markdown_table(doc, header_cells, body_rows, caption=None, table_index=1):
-    table = doc.add_table(rows=1 + len(body_rows), cols=len(header_cells))
-    table.autofit = True
-    for j, txt in enumerate(header_cells):
-        cell = table.rows[0].cells[j]; cell.text = ""
+    n_cols = len(header_cells)
+    table = doc.add_table(rows=1 + len(body_rows), cols=n_cols)
+    # autofit=False -> <w:tblLayout w:type="fixed"/> (an schema-korrekter Stelle
+    # durch python-docx eingefuegt). Nur mit fixed layout greifen feste Breiten.
+    table.autofit = False
+    text_width_cm = 21.0 - M_LEFT - M_RIGHT
+    widths = compute_col_widths_cm(header_cells, body_rows, text_width_cm)
+
+    def _fill(cell, txt, bold=False):
+        cell.text = ""
         p = cell.paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.paragraph_format.line_spacing = 1.15
-        run = p.add_run(txt.strip()); set_font(run, FONT, FSIZE, bold=True)
+        pf = p.paragraph_format
+        pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        pf.space_before = Pt(0); pf.space_after = Pt(0)
+        run = p.add_run(txt.strip()); set_font(run, FONT, TFSIZE, bold=bold)
         run.font.color.rgb = RGBColor(0, 0, 0)
+
+    for j, txt in enumerate(header_cells):
+        _fill(table.rows[0].cells[j], txt, bold=True)
     for i, row in enumerate(body_rows, start=1):
         for j, txt in enumerate(row):
-            cell = table.rows[i].cells[j]; cell.text = ""
-            p = cell.paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            p.paragraph_format.line_spacing = 1.15
-            run = p.add_run(txt.strip()); set_font(run, FONT, FSIZE)
-            run.font.color.rgb = RGBColor(0, 0, 0)
+            if j < n_cols:
+                _fill(table.rows[i].cells[j], txt)
+
     tbl = table._tbl
     tblPr = tbl.find(qn("w:tblPr"))
+    # Gesamtbreite der Tabelle fixieren (dxa)
+    tblW = tblPr.find(qn("w:tblW"))
+    if tblW is None:
+        tblW = OxmlElement("w:tblW")
+        tblPr.insert_element_before(tblW, "w:tblLayout", "w:tblCellMar", "w:tblLook")
+    tblW.set(qn("w:w"), str(int(round(sum(widths) * TWIPS_PER_CM))))
+    tblW.set(qn("w:type"), "dxa")
+    # Spaltenbreiten im tblGrid setzen ...
+    grid = tbl.find(qn("w:tblGrid"))
+    if grid is not None:
+        for gc, wcm in zip(grid.findall(qn("w:gridCol")), widths):
+            gc.set(qn("w:w"), str(int(round(wcm * TWIPS_PER_CM))))
+    # ... und zusaetzlich je Zelle (tcW), damit Word und LibreOffice folgen.
+    all_rows = table.rows
+    for row in all_rows:
+        for cell, wcm in zip(row.cells, widths):
+            cell.width = Cm(wcm)
+    # Tabelle nicht ueber den Seitenumbruch zerreissen: jede Zeile cantSplit
+    # (kein Bruch mitten in einer Zeile) und alle Zeilen ausser der letzten
+    # "mit naechster zusammenhalten" -> Word schiebt die ganze Tabelle bei
+    # Bedarf geschlossen auf die naechste Seite, statt sie zu teilen.
+    for ri, row in enumerate(all_rows):
+        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+        if ri < len(all_rows) - 1:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    p.paragraph_format.keep_with_next = True
+    # Rahmen: oben/unten + Kopf-Trennlinie kraeftiger (sz 8), dazu duenne Linien
+    # zwischen Zeilen UND Spalten (insideH/insideV, sz 4); aeussere Seiten offen.
     tblBorders = OxmlElement("w:tblBorders")
-    for edge in ("top", "bottom"):
-        b = OxmlElement(f"w:{edge}")
-        b.set(qn("w:val"), "single"); b.set(qn("w:sz"), "8"); b.set(qn("w:color"), "000000")
+    for tag, val, sz in (
+        ("top", "single", "8"), ("left", "nil", None),
+        ("bottom", "single", "8"), ("right", "nil", None),
+        ("insideH", "single", "4"), ("insideV", "single", "4"),
+    ):
+        b = OxmlElement(f"w:{tag}"); b.set(qn("w:val"), val)
+        if sz:
+            b.set(qn("w:sz"), sz); b.set(qn("w:color"), "000000")
         tblBorders.append(b)
-    for edge in ("left", "right", "insideV"):
-        b = OxmlElement(f"w:{edge}"); b.set(qn("w:val"), "nil")
-        tblBorders.append(b)
-    insideH = OxmlElement("w:insideH")
-    insideH.set(qn("w:val"), "single"); insideH.set(qn("w:sz"), "4"); insideH.set(qn("w:color"), "000000")
-    tblBorders.append(insideH)
-    tblPr.append(tblBorders)
+    tblPr.insert_element_before(
+        tblBorders, "w:shd", "w:tblLayout", "w:tblCellMar",
+        "w:tblLook", "w:tblCaption", "w:tblDescription",
+    )
     if caption:
         add_table_caption(doc, table_index, caption)
 
@@ -410,7 +479,8 @@ def process_chapter_line(doc, line):
 
 
 all_chapter_text = ""
-for cf in sorted(CHAP_DIR.glob("*.md")):
+# ".prehum."-Backups (von /humanize) ausschliessen, sonst werden Kapitel doppelt gerendert.
+for cf in sorted(p for p in CHAP_DIR.glob("*.md") if ".prehum." not in p.name):
     content = re.sub(r"^---\n.*?\n---\n", "", cf.read_text(), count=1, flags=re.DOTALL)
     all_chapter_text += content + "\n\n"
 
@@ -545,6 +615,27 @@ def add_bib_entry(doc, e):
         if e.get("seiten"):
             r_text(f", {e['seiten']}")
         r_text(".")
+        if e.get("doi"):
+            r_text(f" https://doi.org/{e['doi']}")
+    elif typ_e == "sammelband":
+        r_text(titel_e + ". ")
+        r_text("In ")
+        r_text(e.get("sammelbandtitel", ""), italic=True)
+        if e.get("seiten"):
+            r_text(f" (S. {e['seiten']})")
+        r_text(". ")
+        if e.get("verlag"):
+            r_text(f"{e['verlag']}.")
+        if e.get("doi"):
+            r_text(f" https://doi.org/{e['doi']}")
+    elif typ_e == "konferenz":
+        r_text(titel_e + ". ")
+        r_text(e.get("sammelbandtitel", ""), italic=True)
+        r_text(". ")
+        if e.get("abruf"):
+            r_text(f"Abgerufen am {e['abruf']}, von ")
+        if e.get("url"):
+            r_text(e["url"])
     elif typ_e == "buch":
         r_text(titel_e, italic=True)
         if e.get("auflage"):

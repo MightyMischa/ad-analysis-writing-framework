@@ -266,3 +266,53 @@ Vor `/compile` oder `/finalize` werden geprüft:
 
 Der `/codex-review`-Skill ruft Codex (`gpt-5.5`, `model_reasoning_effort=xhigh`) auf,
 um diesen Katalog gegen den aktuellen Repo-Stand automatisch zu prüfen.
+
+---
+
+## Build-/Tooling-Lessons (Builder-Bugs, behoben 2026-06-18 in „nova", zurückportiert ins Framework)
+
+### B-Table — Markdown-Tabellen brauchen feste, inhaltsproportionale Spaltenbreiten
+- **Pitfall:** `add_markdown_table` setzte `table.autofit = True` ohne Spaltenbreiten. python-docx/Word schreibt dann GLEICH breite Spalten, wodurch eine lange Textspalte (z. B. User-Story) genauso schmal wird wie eine winzige Nr.-Spalte und in 6–7 Zeilen umbricht.
+- **Korrekt:** `autofit = False` (→ `tblLayout fixed`), Breiten inhaltsproportional (`compute_col_widths_cm`, Mindestbreite + Deckel), je Zelle `tcW` UND `gridCol` setzen, Tabellenschrift `TFSIZE` (Default 10 pt), einzeiliger Zellabstand.
+- **Bonus:** `w:cantSplit` je Zeile + `keep_with_next` auf allen Zeilen außer der letzten → Tabelle bricht nicht über den Seitenumbruch. `insideV single` für vertikale Spaltentrennlinie (APA: optional).
+
+### B-Bib — Lit-Verz muss journal-DOI, Sammelband- und Konferenz-Felder rendern
+- **Pitfall:** `add_bib_entry` hatte nur `journal/buch/website/report`-Branches; `sammelband` und `konferenz` fielen in den `else`-Zweig → nur der Titel wurde gerendert (Sammelbandtitel, Seiten, Verlag, Konferenz, URL verschwanden). journal ohne DOI.
+- **Symptom:** Quelldaten in literature.md komplett, im DOCX aber Titel-Fragmente. Der Drift-Check bleibt grün (zählt nur Existenz) und schlägt NICHT an.
+- **Korrekt:** journal um DOI ergänzen, eigene Branches für `sammelband` („In Sammelbandtitel (S. x–y). Verlag. DOI") und `konferenz` („Konferenz/Ort. Abgerufen am …, von URL").
+
+### B-Glob — `.prehum`-Backups aus dem Kapitel-Glob ausschließen
+- **Pitfall:** `/humanize` legt Sicherungen als `X.prehum.md` im selben `final/`-Ordner ab. `CHAP_DIR.glob("*.md")` zieht sie mit → betroffene Kapitel inkl. Tabellen werden DOPPELT gerendert.
+- **Korrekt:** Im Glob `if ".prehum." not in p.name` filtern (Body- UND Anhang-Glob, falls getrennt).
+
+### B-TOC — Tabellenverzeichnis als Heading 1, Inhaltsverzeichnis NICHT
+- **Pitfall:** Das Tabellenverzeichnis hatte keinen Heading-1-Stil → fehlte als Eintrag im Inhaltsverzeichnis. Das Inhaltsverzeichnis war selbst Heading 1 → listete sich selbst.
+- **Korrekt:** `p_tab_title.style = Heading 1` (erscheint im TOC), Inhaltsverzeichnis-Titel NICHT als Heading 1 (Optik per Run-Format halten). F6 verlangt nur ≥ 4 Heading-1-Absätze → bleibt grün.
+
+---
+
+## Prozess-/Workflow-Lessons (Session 2026-06-18)
+
+### P-Render — finales PDF visuell prüfen, nicht nur Validator + Markdown
+- **Pitfall:** Validator und Markdown sahen sauber aus; erst im gerenderten PDF fielen eine über zwei Seiten zerrissene Tabelle, eine fehlende Spaltentrennlinie und eine inhaltliche Überzeichnung (s. P-Team) auf. Ohne lokales LibreOffice war die Seitenzahl nur geschätzt.
+- **Korrekt:** Vor Abgabe das echte PDF rendern (LibreOffice installieren oder vom User anfordern) und Layout, Tabellen, Seitenumbrüche und Seitenzahl visuell prüfen.
+
+### P-Integrity — kein erfundenes Feedback, keine erfundenen Rollen
+- **Pitfall:** Ein externes Modell schlug vor, ein Stakeholder-Feedback (Product Owner/Lead Developer/QA) zu ERFINDEN. Das wäre Fabrikation und widerspricht „keine eigene empirische Erhebung".
+- **Korrekt:** Nichts erfinden. Reale Konstellation abbilden (hier: Zwei-Personen-Startup), Personen nur als Rollen. Bei Unsicherheit über die Realität nachfragen statt ausschmücken.
+
+### P-Team-Konsistenz — bei bekannt gewordener realer Teamgröße ALLE Kapitel prüfen
+- **Pitfall:** Nach „wir sind nur zu zweit" nur die offensichtliche Stelle korrigiert; eine zweite überzeichnete Rollenbeschreibung (Lead Developer, Frontend, QA, Beirat) blieb stehen und fiel erst im PDF auf.
+- **Korrekt:** Wird ein faktischer Anker bekannt (Teamgröße, Tool, Zahl), den GESAMTEN Text dagegen greppen, nicht nur die zuerst genannte Stelle.
+
+### P-Feedback-adversarial — externes Reviewer-Feedback gegen die echten Dateien verifizieren
+- **Pitfall:** Externes Feedback war überwiegend gut, aber punktuell falsch: „Literaturverzeichnis unvollständig" stimmte im Ergebnis, war aber in der URSACHE falsch (Quelldaten komplett → Builder-Bug, nicht Quelle).
+- **Korrekt:** Jeden Punkt gegen die echten Dateien prüfen, Ursache von Symptom trennen, Fabrikations-Vorschläge ablehnen.
+
+### P-Datei-Locks — vor rm/Umbenennen auf offene Word-Dateien (`~$`) prüfen
+- **Pitfall:** Eine DOCX gelöscht, die der User noch in Word offen hatte (Lock-Datei `~$…docx` übersehen). Beim Speichern kann Word die veraltete Datei neu anlegen.
+- **Korrekt:** Vor `rm`/Umbenennen auf `~$<name>`-Locks prüfen; umbenennen statt löschen; auf offene Fenster hinweisen.
+
+### P-Abgabename — Dateiname-Datum aus `config.abgabe.datum`, nicht aus dem Build-Tag
+- **Pitfall:** Turnitin-DOCX auf dem Vortagsdatum belassen, während Titelblatt/Abgabe das aktuelle Datum trugen.
+- **Korrekt:** Den Turnitin-Dateinamen aus `abgabe.datum` ableiten.
