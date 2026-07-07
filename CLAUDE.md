@@ -40,6 +40,7 @@ In Phase 4 und 5 wird verschränkt gearbeitet: Ein Kapitel planen, direkt schrei
 | `/status` | Fortschritt anzeigen (mit Self-Healing) |
 | `/write [X.X]` | Kapitel schreiben |
 | `/review [X.X]` · `/review --all` | Qualitätsprüfung (3 Agenten parallel; `--all` über alle Kapitel) |
+| `/humanize [X.X]` · `/humanize --all` | KI-Schreibspuren entfernen, Stil natürlicher machen (reiner Stilpass; Inhalt, Zitate und Zahlen bleiben unverändert) |
 | `/cite` | Quelle hinzufügen (PDF, manuell, BibTeX, Zotero) |
 | `/compile` | IU-DOCX + PDF bauen (`scripts/build_docx.py`, PDF via LibreOffice) |
 | `/compile draft` | Entwurf bauen, auch mit fehlenden Kapiteln |
@@ -49,7 +50,8 @@ In Phase 4 und 5 wird verschränkt gearbeitet: Ein Kapitel planen, direkt schrei
 | `/reset [phase]` | Auf frühere Phase zurücksetzen (archiviert Ergebnisse) |
 | `/validate` | Projektkonfiguration und Datenintegrität prüfen (`--auto-repair` für stille Reparatur) |
 | `/preflight` | Blockierendes Pre-Compile-Gate (validate + Lit-Verz-Drift + Pitfalls + Wordcount) |
-| `/apply-feedback` | Reviewer-Feedback ins finale DOCX einarbeiten (preserves Format-Fixes) |
+| `/preview` | HTML-Content-Preview des DOCX (Struktur, Umbrüche, Sektions-Banner) ohne Word |
+| `/apply-feedback` | Reviewer-Feedback als YAML-Patch ins finale DOCX einarbeiten (preserves Format-Fixes) |
 | `/codex-review` | Externer Codex-Review (gpt-5.5 / xhigh) gegen LESSONS.md |
 | `/help` | Kontextsensitive Hilfe |
 
@@ -99,9 +101,14 @@ Schreibpräferenzen: @preferences.md
 | `LESSONS.md` | Reviewer-Lessons (Format, Quellen, Inhalt, Sprache) — nach jedem Review erweitern |
 | `scripts/build_docx.py` | **Kanonischer DOCX-Builder** (config-parametrisiert) + PDF via LibreOffice |
 | `scripts/validate_docx.py` | Automatischer DOCX-Validator gegen IU-Vorgaben (F/S/I/C/M/N-Codes) |
-| `scripts/check_lit_verz_drift.py` | Diff DOCX-Lit-Verz vs. literature.md (bidirektional) |
+| `scripts/check_lit_verz_drift.py` | Diff DOCX-Lit-Verz vs. literature.md (bidirektional); „zitiert, aber fehlt im Lit-Verz" blockiert |
+| `scripts/measure_pages.py` | Soft-Render: misst echten Textteil-Seitenumfang via LibreOffice, sonst Fallback auf manuelles Gate |
+| `scripts/review_tracking.py` | Markiert Kapitel nach /review · /humanize; Preflight warnt bei späterer Änderung |
 | `scripts/validate_r_reproducibility.py` | R-Skript-Reproduzierbarkeit (R1–R5), aktiv wenn r_toolchain.enabled |
-| `base/templates/feedback-patch.py.template` | Vorlage für /apply-feedback-Patch-Skripte |
+| `scripts/docx_inspect.py` | DOCX-Inspektion: Outline, Element-JSON, Substring-Suche mit Run-Struktur |
+| `scripts/docx_patch.py` | Deklarative DOCX-Punkt-Patches aus YAML (Multi-Run-Replace, Dry-Run) — Motor von /apply-feedback |
+| `scripts/docx_preview.py` | DOCX→HTML-Content-Preview mit Format-Banner je Sektion — Motor von /preview |
+| `base/templates/feedback-patch.py.template` | Fallback-Vorlage für /apply-feedback (Ops jenseits des Patch-YAML) |
 
 ## Kontext-Regeln für Agents
 

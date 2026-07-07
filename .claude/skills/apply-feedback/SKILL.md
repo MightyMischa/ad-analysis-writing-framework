@@ -1,11 +1,17 @@
 ---
 name: apply-feedback
-description: Nimmt Reviewer-Feedback (Freitext oder strukturiert) und erzeugt ein Patch-Skript für das finale DOCX. Bewahrt Format-Fixes, die nur im DOCX existieren. Aufruf via /apply-feedback.
+description: Nimmt Reviewer-Feedback (Freitext oder strukturiert) und wendet es als deklaratives YAML-Patch (scripts/docx_patch.py) auf das finale DOCX an. Bewahrt Format-Fixes, die nur im DOCX existieren. Aufruf via /apply-feedback.
 ---
 
 # Reviewer-Feedback ins DOCX einarbeiten
 
 Formalisiert das Muster, das bei Fallstudie 1 (Digitaler Euro) ad-hoc per `apply_reviewer_feedback.py` gelöst wurde. Zentral, wenn das DOCX die Source-of-Truth ist (Frozen-Mode aktiv).
+
+Seit v3.1 laufen Standard-Patches deklarativ über `scripts/docx_patch.py`
+(YAML-Patch, Multi-Run-fähig, Dry-Run) statt über generierte Einweg-Skripte.
+Die Skript-Generierung (`base/templates/feedback-patch.py.template`) bleibt
+Fallback für Operationen, die das Patch-YAML nicht abdeckt (z. B. Formatierungs-
+oder Tabellen-Umbauten).
 
 ## Wann aufrufen
 
@@ -49,71 +55,70 @@ Für jeden Feedback-Punkt klassifiziere die Operation:
 
 ### 3. DOCX inspizieren
 
-Lies das Ziel-DOCX (Default: jüngstes `_final_konform*.docx` in `output/phase-07-docx/`).
+Ziel-DOCX bestimmen (Default: jüngstes `_final_konform*.docx` in `output/phase-07-docx/`).
 
-Pro Punkt:
-- Lokalisiere den Anker-Absatz via Substring-Suche im DOCX-Text
-- Notiere Run-Struktur (1 Run vs. mehrere)
-- Plane die exakte String-Operation
+Pro Punkt den Anker lokalisieren:
 
-Falls Anker nicht eindeutig: AskUserQuestion mit Vorschlägen.
-
-### 4. Patch-Skript generieren
-
-Erzeuge `scripts/apply_<short-id>_feedback.py` analog zur Vorlage in `base/templates/feedback-patch.py.template`. Skript-Struktur:
-
-```python
-#!/usr/bin/env python3
-"""Wendet Reviewer-Feedback vom <Datum> auf das finale DOCX an."""
-
-from copy import deepcopy
-from pathlib import Path
-from docx import Document
-
-PROJECT = Path("<absoluter-pfad>")
-SRC = PROJECT / "output" / "phase-07-docx" / "<aktuelles-final-docx>"
-DST = PROJECT / "output" / "phase-07-docx" / "<aktuelles-final-docx>_v<N+1>.docx"
-
-# Helper: replace_in_single_run_paragraph, insert_paragraph_after
-# (siehe base/templates/feedback-patch.py.template)
-
-def main():
-    doc = Document(str(SRC))
-    paras = doc.paragraphs
-
-    # Punkt 1: <Titel>
-    para = next(p for p in paras if "<eindeutiger Anker-Substring>" in p.text)
-    replace_in_single_run_paragraph(para, "<old>", "<new>")
-    print("✓ Punkt 1: <kurz>")
-
-    # Punkt 2: ...
-
-    # Lit-Verz-Eintrag (falls neue Quelle ergänzt)
-    para_anchor = next(
-        p for p in paras
-        if p.text.startswith("<alphabetisch-davor-stehender-Eintrag>")
-    )
-    insert_paragraph_after(para_anchor, "<APA7-Lit-Verz-Eintrag>")
-    print("✓ Lit-Verz: <neue Quelle> ergänzt")
-
-    doc.save(str(DST))
-    print(f"\n✓ Gespeichert: {DST.relative_to(PROJECT)}")
-
-
-if __name__ == "__main__":
-    main()
+```bash
+python3 scripts/docx_inspect.py search <docx> "<Anker-Substring>"
 ```
 
-### 5. Vor-Validierung
+Der Output zeigt Adresse (`p<N>`), Style, Run-Anzahl und ob der Substring in
+einem Run liegt oder Run-Grenzen überspannt (`docx_patch.py` kann beides).
+Bei mehreren Treffern: Anker verlängern oder die Adresse notieren.
+Für Detailansicht: `python3 scripts/docx_inspect.py get <docx> p<N> --json`.
 
-Vor dem Speichern: nutze `replace_in_single_run_paragraph`-Wrapper, der bei fehlendem Anker explizit fehlschlägt — kein stillschweigendes No-Op.
+Falls fachlich unklar, welcher Treffer gemeint ist: AskUserQuestion mit Vorschlägen.
+
+### 4. Patch-YAML erzeugen
+
+Erzeuge `feedback/<timestamp>-<short-id>.patch.yaml`:
+
+```yaml
+src: output/phase-07-docx/<aktuelles-final-docx>.docx
+# dst optional — Default: automatisches _v<N+1>-Suffix, src bleibt unangetastet
+ops:
+  # Punkt 1: <Titel> (Citation-Tausch / Sprach-Korrektur)
+  - op: replace
+    anchor: "<eindeutiger Anker-Substring>"
+    old: "<old>"
+    new: "<new>"
+
+  # Punkt 2: <Titel> (Absatz-Ergänzung, Style wird vom Anker geklont)
+  - op: insert_after
+    anchor: "<Anker im Ziel-Kapitel>"
+    text: "<Neuer Absatz>"
+
+  # Lit-Verz-Eintrag (falls neue Quelle ergänzt; alphabetisch einsortieren)
+  - op: insert_after
+    anchor_startswith: "<alphabetisch davor stehender Lit-Verz-Eintrag>"
+    text: "<APA7-Lit-Verz-Eintrag>"
+```
+
+Verfügbare Ops: `replace` (auch über Run-Grenzen), `insert_after`, `delete`.
+Anker-Auflösung via `anchor` (Substring), `anchor_startswith` oder `address: p<N>`.
+
+**Fallback:** Braucht ein Punkt Operationen jenseits dieser drei (Formatierung,
+Tabellenzellen, Sektionen), generiere wie früher ein Skript aus
+`base/templates/feedback-patch.py.template` — nur für diese Punkte.
+
+### 5. Dry-Run
+
+```bash
+python3 scripts/docx_patch.py feedback/<...>.patch.yaml --dry-run
+```
+
+Schlägt hart fehl bei fehlendem oder mehrdeutigem Anker — kein stillschweigendes
+No-Op. Output zeigt Vorher/Nachher-Fenster um jede Änderungsstelle.
 
 ### 6. Patch-Lauf
 
-Frage User um Bestätigung („Folgende Änderungen werden auf das DOCX angewendet:" + Liste). Bei OK:
+Zeige dem User den Dry-Run-Output („Folgende Änderungen werden auf das DOCX angewendet:"). Bei OK:
 ```bash
-python3 scripts/apply_<short-id>_feedback.py
+python3 scripts/docx_patch.py feedback/<...>.patch.yaml
 ```
+
+Das Ergebnis landet als `_v<N+1>.docx` neben der Source-Datei; die Source bleibt unverändert.
 
 ### 7. Post-Validierung
 
@@ -129,7 +134,7 @@ Frage User: „Sollen die Markdown-Quellen (`output/phase-05-writing/final/*.md`
 
 ### 9. Logging
 
-Speichere das Feedback selbst in `feedback/<timestamp>-<short-id>.md` mit Verknüpfung zum erzeugten Patch-Skript und Eintrag in `LESSONS.md`-Entwurf (manuell zu approven).
+Speichere das Feedback selbst in `feedback/<timestamp>-<short-id>.md` mit Verknüpfung zum Patch-YAML (bzw. Fallback-Skript) und Eintrag in `LESSONS.md`-Entwurf (manuell zu approven). Das Patch-YAML bleibt liegen — es dokumentiert den Eingriff und ist reproduzierbar.
 
 ## Beispiel — Fallstudie 1 Reviewer-Feedback
 
@@ -149,7 +154,7 @@ Skill klassifiziert:
 - Punkt 3 → Citation-Ergänzung (Co-Citation in Einleitung)
 - Punkt 4 → Absatz-Ergänzung (Methodengrenzen-Sätze ins Fazit)
 
-Erzeugt `scripts/apply_2026-04-30_feedback.py` mit 5 konkreten Operationen (4 Patches + 1 Lit-Verz-Insertion). User bestätigt, Skript läuft, `/preflight` validiert das neue DOCX.
+Erzeugt `feedback/2026-04-30-reviewer1.patch.yaml` mit 5 Ops (3× replace, 2× insert_after inkl. Lit-Verz-Eintrag). Dry-Run zeigt die Vorher/Nachher-Fenster, User bestätigt, Patch läuft, `/preflight` validiert das neue DOCX.
 
 ## Konfiguration
 

@@ -49,11 +49,16 @@ Output: Quellen im DOCX ohne literature.md-Pendant und vice versa.
 **Schritt 2.3 — Course-Book-Presence (falls Fallstudie)**
 Wird vom Validator (C1-Check) abgedeckt — kein extra Schritt nötig.
 
-**Schritt 2.4 — Wortzahl-Schranke**
+**Schritt 2.4 — Wortzahl-Schätzung (NUR grober Richtwert)**
 ```bash
 python3 -c "from docx import Document; ..."
 ```
-Lese `config.yaml → formatierung.seitenumfang.{min,max}`. Schätze Seitenzahl (Wörter ÷ 250 für Arial 11pt 1,5-Zeilen). Warnung wenn außerhalb.
+Lese `config.yaml → formatierung.seitenumfang.{min,max}`. Schätze die Seitenzahl mit dem
+**kalibrierten Richtwert ~330 Wörter/Seite** (Arial 11pt, 1,5-zeilig). Der frühere Wert
+250 lag massiv daneben (echter Word-Render ~330) und erzeugte Schwankungen von 7,6 bis
+11,8 Seiten für dasselbe Dokument. Das ist NUR eine Schätzung — die tatsächliche
+Seitenzahl entscheidet der Word-Render (Schritt 2.6, Render-Gate). Warnung (nicht
+blockierend) wenn die Schätzung außerhalb des Soll-Bereichs liegt.
 
 **Schritt 2.5 — R-Reproduzierbarkeit (falls aktiv)**
 Wenn `config.yaml → r_toolchain.enabled: true`:
@@ -61,12 +66,62 @@ Wenn `config.yaml → r_toolchain.enabled: true`:
 python3 scripts/validate_r_reproducibility.py
 ```
 
+**Schritt 2.6 — Render-Gate (VERBINDLICH, nur in Word/LibreOffice prüfbar)**
+
+`validate_docx.py` arbeitet rein auf dem DOCX-XML und kann die am stärksten benoteten
+Formalvorgaben NICHT entscheiden — sie sind reine Render-Fragen. Dieser Schritt ist
+KEINE Fußnote, sondern ein verbindlicher Gate-Punkt.
+
+Zuerst die **Soft-Messung** (misst die echte Seitenzahl, wenn LibreOffice vorhanden ist;
+sonst Hinweis `RENDER_UNAVAILABLE` und Fallback auf die manuelle Checkliste):
+```bash
+python3 scripts/measure_pages.py <docx-pfad>
+```
+- Gibt das Skript einen gemessenen Textteil aus, gilt diese Zahl (real gerendert) statt
+  der groben Wortschätzung aus Schritt 2.4. Außerhalb des Soll-Bereichs → WARNUNG.
+- Bei `RENDER_UNAVAILABLE` ist LibreOffice nicht installiert (Soft-Modus, kein Zwang):
+  dann ist die manuelle Sichtprüfung unten verbindlich. Als Vorstufe dazu
+  `python3 scripts/docx_preview.py <docx-pfad> --open` (bzw. `/preview`) erzeugen —
+  die Content-Preview zeigt Struktur, Umbrüche und die Sektions-Banner
+  (Seitennummerierung, Ränder), ersetzt aber die Word-Sichtprüfung NICHT.
+
+Manuelle Sichtprüfung (immer, mindestens als Gegenkontrolle): DOCX in Word öffnen,
+**Strg+A → F9 („Gesamtes Verzeichnis aktualisieren")**, dann:
+
+- [ ] **7–10 Seiten Textteil** (Einleitung bis Fazit, ohne Verzeichnisse)
+- [ ] **≥ 0,5 Seite je Unterkapitel**
+- [ ] **Seitenzahlen**: Titelblatt ohne Zahl, Inhaltsverzeichnis = **II** (römisch),
+  Einleitung = **1** (arabisch)
+- [ ] **Inhaltsverzeichnis-Ebene 1 optisch fett** (XML wird von F6 geprüft, Optik hier)
+- [ ] **letzte Textseite nicht fast leer**
+
+Erst wenn alle Render-Punkte sitzen, ist das Dokument abgabereif.
+
+**Schritt 2.7 — Review-/Humanize-Tracking**
+```bash
+python3 scripts/review_tracking.py check
+```
+Warnt (nicht blockierend), wenn ein Kapitel seit seinem letzten `/review` oder
+`/humanize` verändert wurde — damit nachträglich ergänzter Text nicht ungeprüft
+durchrutscht. Liefert nichts, solange noch keine Markierungen vorliegen.
+
 ### 3. Aggregation
 
+`validate_docx.py` und `check_lit_verz_drift.py` prüfen nur das DOCX-**XML**; die
+render-abhängigen Vorgaben (Seitenumfang, Halbseiten-Regel, sichtbare Seitenzahlen,
+optische TOC-Fettung) entscheidet allein das Render-Gate (Schritt 2.6). „Validator grün"
+heißt NICHT „Dokument korrekt".
+
 Sammle alle Funde, gruppiere nach Schwere:
-- **Hoch (BLOCKIEREND):** F-Codes, C1, M1, N1, Pitfall-Strings, Lit-Verz-Drift "im DOCX, nicht in literature.md"
-- **Mittel (WARNUNG):** Wortzahl außerhalb, Stammdaten ohne DOCX-Verwendung, R-Reproduzierbarkeit-Warnung
-- **Niedrig (HINWEIS):** I1-Aktualitätsanker
+- **Hoch (BLOCKIEREND):** F-Codes (inkl. F6 TOC-Ebenen), C1, M1, N1, Pitfall-Strings,
+  Lit-Verz-Drift „im DOCX, nicht in literature.md" UND „im Volltext zitiert, fehlt im
+  gerenderten Lit-Verz" (Build hat eine Quelle verschluckt — vgl. P1-A)
+- **Mittel (WARNUNG):** Wortzahl-Schätzung bzw. gemessener Textteil außerhalb Soll,
+  Stammdaten ohne DOCX-Verwendung, R-Reproduzierbarkeit-Warnung, Kapitel seit
+  letztem /review oder /humanize verändert (Schritt 2.7)
+- **Niedrig (HINWEIS):** A1/A2-Aktualitätshinweise (report/website-Jahr < aktuelles Jahr,
+  Aktualitäts-Anker aus preferences.md), I1-Aktualitätsanker
+- **Render-Gate (manuell, verbindlich):** Schritt 2.6 — nicht aus dem XML ableitbar
 
 ### 4. Output-Format
 
