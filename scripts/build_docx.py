@@ -208,15 +208,19 @@ for h_name, h_size in (("Heading 1", 16), ("Heading 2", 14), ("Heading 3", 11)):
     style.font.size = Pt(h_size)
     style.font.bold = True
 
-try:
-    toc1 = doc.styles["TOC 1"]
-except KeyError:
-    from docx.enum.style import WD_STYLE_TYPE
-    toc1 = doc.styles.add_style("TOC 1", WD_STYLE_TYPE.PARAGRAPH)
-toc1.font.bold = True
-toc1.font.name = FONT
-toc1.font.size = Pt(FSIZE)
-toc1.font.color.rgb = RGBColor(0, 0, 0)
+from docx.enum.style import WD_STYLE_TYPE
+# Inhaltsverzeichnis-Ebenen: Ebene 1 fett (IU-Vorgabe), Ebenen 2 und 3 normal.
+# TOC 2/3 explizit anlegen, damit Word sie beim Feld-Update nicht inkonsistent
+# selbst erzeugt und der Kontrast fett/normal garantiert ist.
+for _toc_name, _toc_bold in (("TOC 1", True), ("TOC 2", False), ("TOC 3", False)):
+    try:
+        _toc_style = doc.styles[_toc_name]
+    except KeyError:
+        _toc_style = doc.styles.add_style(_toc_name, WD_STYLE_TYPE.PARAGRAPH)
+    _toc_style.font.bold = _toc_bold
+    _toc_style.font.name = FONT
+    _toc_style.font.size = Pt(FSIZE)
+    _toc_style.font.color.rgb = RGBColor(0, 0, 0)
 
 normal = doc.styles["Normal"]
 normal.font.name = FONT
@@ -231,6 +235,21 @@ for _a in ("w:ascii", "w:hAnsi", "w:cs"):
 normal.paragraph_format.line_spacing = LINESP
 normal.paragraph_format.space_before = Pt(0)
 normal.paragraph_format.space_after = Pt(0)
+
+# Automatische Silbentrennung: ohne autoHyphenation reisst Word/LibreOffice im
+# Blocksatz grosse Wortzwischenraeume. Im settings-Part setzen, damit der ganze
+# Body getrennt wird; Trennzone 0,5 cm, max. zwei Trennstriche in Folge.
+_settings = doc.settings.element
+for _tag, _attrs in (
+    ("w:autoHyphenation", {"w:val": "true"}),
+    ("w:consecutiveHyphenLimit", {"w:val": "2"}),
+    ("w:hyphenationZone", {"w:val": "284"}),  # 0,5 cm in Twips
+):
+    if _settings.find(qn(_tag)) is None:
+        _el = OxmlElement(_tag)
+        for _k, _v in _attrs.items():
+            _el.set(qn(_k), _v)
+        _settings.append(_el)
 
 # ========== Titelblatt ==========
 
@@ -269,19 +288,24 @@ for zeile in (
 fm = doc.add_section(WD_SECTION.NEW_PAGE)
 set_margins(fm)
 set_page_number_format(fm, fmt="upperRoman", start=2)
+# Erste Seite NICHT als Sonderseite behandeln: erbt sonst die unterdrueckte
+# Titelblatt-Fusszeile, sodass das Inhaltsverzeichnis keine "II" zeigt.
+fm.different_first_page_header_footer = False
 fm.footer.is_linked_to_previous = False
 add_page_number_footer(fm)
 section0.footer.is_linked_to_previous = False
 
 if SHOW_TOC:
     p_toc_title = doc.add_paragraph()
-    p_toc_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_toc_title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     # Bewusst KEIN Heading 1: sonst listet sich das Inhaltsverzeichnis selbst.
-    # Optik bleibt durch die Run-Formatierung (14pt, fett, schwarz) identisch.
+    # Optik (16pt, fett, schwarz, linksbuendig) gleicht aber Heading 1 an.
     r = p_toc_title.add_run("Inhaltsverzeichnis")
-    set_font(r, FONT, 14, bold=True); r.font.color.rgb = RGBColor(0, 0, 0)
+    set_font(r, FONT, 16, bold=True); r.font.color.rgb = RGBColor(0, 0, 0)
     p_toc_title.paragraph_format.space_after = Pt(18)
-    r = doc.add_paragraph().add_run(); set_font(r, FONT, FSIZE)
+    p_toc_field = doc.add_paragraph()
+    p_toc_field.style = doc.styles["TOC 1"]
+    r = p_toc_field.add_run(); set_font(r, FONT, FSIZE, bold=True)
     add_field(r, r'TOC \o "1-3" \h \z \u',
               "Rechtsklick → Feld aktualisieren, um das Inhaltsverzeichnis anzuzeigen.")
 
@@ -302,10 +326,10 @@ term_file = PROJECT / "output" / "terminology.md"
 if SHOW_ABK and term_file.exists():
     add_page_break(doc)
     p_abk_title = doc.add_paragraph()
-    p_abk_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_abk_title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     p_abk_title.style = doc.styles["Heading 1"]
     r = p_abk_title.add_run("Abkürzungsverzeichnis")
-    set_font(r, FONT, 14, bold=True); r.font.color.rgb = RGBColor(0, 0, 0)
+    set_font(r, FONT, 16, bold=True); r.font.color.rgb = RGBColor(0, 0, 0)
     p_abk_title.paragraph_format.space_after = Pt(18)
     term_content = term_file.read_text()
     abk_match = re.search(r"## Abk.rzungen.*?\n(.+?)(?=\n##|\Z)", term_content, re.DOTALL)
@@ -327,6 +351,9 @@ if SHOW_ABK and term_file.exists():
 body = doc.add_section(WD_SECTION.NEW_PAGE)
 set_margins(body)
 set_page_number_format(body, fmt="decimal", start=1)
+# Erste Body-Seite (Einleitung) soll "1" tragen, daher keine Sonderbehandlung
+# der ersten Seite, sonst fehlt die Seitenzahl auf Seite 1.
+body.different_first_page_header_footer = False
 body.footer.is_linked_to_previous = False
 add_page_number_footer(body)
 
@@ -479,8 +506,12 @@ def process_chapter_line(doc, line):
 
 
 all_chapter_text = ""
-# ".prehum."-Backups (von /humanize) ausschliessen, sonst werden Kapitel doppelt gerendert.
-for cf in sorted(p for p in CHAP_DIR.glob("*.md") if ".prehum." not in p.name):
+# Strikte Whitelist statt "*.md minus .prehum.": nur echte Kapiteldateien
+# (kapitel-<Zahl>.md, optional kapitel-1.2.md) bauen. Sonst geraten Backups wie
+# kapitel-2.precodex.md, kapitel-3.precodex2.md, kapitel-4.md.bak3 oder
+# .prehum.-Stände als zusätzliche „Kapitel" in den Build.
+_chapter_re = re.compile(r"^kapitel-\d+(?:[.\-]\d+)*\.md$")
+for cf in sorted(p for p in CHAP_DIR.glob("kapitel-*.md") if _chapter_re.match(p.name)):
     content = re.sub(r"^---\n.*?\n---\n", "", cf.read_text(), count=1, flags=re.DOTALL)
     all_chapter_text += content + "\n\n"
 
@@ -550,6 +581,23 @@ def is_institution(autor_full):
     return "," not in autor_full.split("/")[0]
 
 
+def _cite_in_text(patterns, text):
+    """Prüft case-insensitiv, ob eines der In-Text-Zitatmuster im Volltext steht.
+
+    Ein satzinitial großgeschriebener Partikel-Nachname („De Vries (2018") muss
+    dieselbe Quelle treffen wie die Stammform aus literature.md („de Vries"),
+    sonst fällt eine zitierte Quelle aus dem Literaturverzeichnis (echter
+    APA-Fehler). Die negative Lookbehind ``(?<!\\w)`` verhindert, dass ein kurzes
+    Kürzel mitten in einem Wort matcht (z. B. „un, 2015" in „Jun, 2015" für eine
+    UN-Quelle); die Muster bleiben durch Jahr + „(" bzw. „, " verankert, daher
+    sind Falsch-Positive nahe null.
+    """
+    for p in patterns:
+        if re.search(r"(?<!\w)" + re.escape(p), text, re.IGNORECASE):
+            return True
+    return False
+
+
 def get_used_sources(chapters_text):
     """Generisch (datengetrieben, keine hartcodierten Institutionsnamen)."""
     used = []
@@ -584,11 +632,23 @@ def get_used_sources(chapters_text):
                                  f"{surnames[0]}/{surnames[1]} ({year}"]
                 else:
                     patterns.append(f"{first} et al.")
-        if any(p in chapters_text for p in patterns):
+        if _cite_in_text(patterns, chapters_text):
             used.append(e)
     used.sort(key=lambda e: (e.get("autor", "").split("/")[0].split(",")[0].strip().lower(),
                              e.get("quelle_id", "")))
     return used
+
+
+def title_sep(titel):
+    """Trenner nach dem Titel: Punkt + Leerzeichen, ausser der Titel endet bereits
+    auf Satzzeichen (?, !, .) — dann nur Leerzeichen, sonst entsteht 'Paradigm?.'."""
+    return " " if titel.rstrip().endswith((".", "?", "!")) else ". "
+
+
+def fmt_pages(seiten):
+    """Seitenbereich mit Halbgeviertstrich (en dash) statt Bindestrich:
+    'S. 1271-1319' -> 'S. 1271–1319'. Nur den numerischen Bereich umstellen."""
+    return re.sub(r"(\d)\s*-\s*(\d)", r"\1–\2", str(seiten))
 
 
 def add_bib_entry(doc, e):
@@ -606,30 +666,33 @@ def add_bib_entry(doc, e):
     titel_e = e.get("titel", "")
     typ_e = e.get("quelle_typ", "")
     if typ_e == "journal":
-        r_text(titel_e + ". ")
+        r_text(titel_e + title_sep(titel_e))
         r_text(e.get("journal", ""), italic=True)
         if e.get("jahrgang"):
             r_text(", "); r_text(str(e["jahrgang"]), italic=True)
         if e.get("ausgabe"):
             r_text(f"({e['ausgabe']})")
         if e.get("seiten"):
-            r_text(f", {e['seiten']}")
+            r_text(f", {fmt_pages(e['seiten'])}")
         r_text(".")
         if e.get("doi"):
             r_text(f" https://doi.org/{e['doi']}")
+        elif e.get("url"):
+            # Law-/SSRN-Journals ohne DOI (z. B. Arner 2016) sonst ohne stabilen Link.
+            r_text(f" {e['url']}")
     elif typ_e == "sammelband":
-        r_text(titel_e + ". ")
+        r_text(titel_e + title_sep(titel_e))
         r_text("In ")
         r_text(e.get("sammelbandtitel", ""), italic=True)
         if e.get("seiten"):
-            r_text(f" (S. {e['seiten']})")
+            r_text(f" (S. {fmt_pages(e['seiten'])})")
         r_text(". ")
         if e.get("verlag"):
             r_text(f"{e['verlag']}.")
         if e.get("doi"):
             r_text(f" https://doi.org/{e['doi']}")
     elif typ_e == "konferenz":
-        r_text(titel_e + ". ")
+        r_text(titel_e + title_sep(titel_e))
         r_text(e.get("sammelbandtitel", ""), italic=True)
         r_text(". ")
         if e.get("abruf"):
@@ -640,26 +703,38 @@ def add_bib_entry(doc, e):
         r_text(titel_e, italic=True)
         if e.get("auflage"):
             r_text(f" ({e['auflage']}. Aufl.)")
-        r_text(". ")
+            r_text(". ")
+        else:
+            r_text(title_sep(titel_e))
         if e.get("ort"):
             r_text(f"{e['ort']}: ")
         r_text(f"{e.get('verlag', '')}.")
     elif typ_e == "website":
-        r_text(titel_e, italic=True); r_text(". ")
+        r_text(titel_e, italic=True); r_text(title_sep(titel_e))
         if e.get("verlag"):
             r_text("In "); r_text(e["verlag"], italic=True); r_text(". ")
         if e.get("abruf"):
             r_text(f"Abgerufen am {e['abruf']}, von ")
         if e.get("url"):
             r_text(e["url"])
-    elif typ_e == "report":
-        r_text(titel_e, italic=True); r_text(". ")
+    elif typ_e in ("report", "working_paper"):
+        r_text(titel_e, italic=True); r_text(title_sep(titel_e))
+        # Working Paper: Reihe + Nummer gehören VOR Verlag/URL (APA), z. B.
+        # „CESifo Working Paper No. 8655." Bisher musste die Reihe ins verlag-Feld
+        # geschmuggelt werden — jetzt eigene Felder reihe/nummer.
+        reihe = str(e.get("reihe", "")).strip()
+        nummer = str(e.get("nummer", "")).strip()
+        if reihe or nummer:
+            r_text(f"{' '.join(s for s in (reihe, nummer) if s)}. ")
         if e.get("verlag"):
             r_text(f"{e['verlag']}. ")
         if e.get("url"):
             r_text(e["url"])
+        elif e.get("doi"):
+            r_text(f"https://doi.org/{e['doi']}")
     else:
-        r_text(titel_e, italic=True); r_text(".")
+        r_text(titel_e, italic=True)
+        r_text("" if titel_e.rstrip().endswith((".", "?", "!")) else ".")
 
 
 if SHOW_LIT:

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!-- Abgeleitet von shreyashankar/plain-writing-skill (assets/revision_template.html),
+     ins Deutsche uebersetzt und fuer den /humanize-Workflow angepasst.
+     Platzhalter __DATA__ wird zur Laufzeit durch die Aenderungsliste (JSON) ersetzt. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stilrevision</title>
+<style>
+  :root {
+    --keep: #222; --del-bg: #fdecec; --del: #b3261e; --ins-bg: #e9f6ec; --ins: #1e7d32;
+    --line: #e6e6e6;
+  }
+  body { font-family: 'Inter', -apple-system, Helvetica, Arial, sans-serif; max-width: 820px;
+         margin: 0 auto; padding: 2em 1.2em; color: var(--keep); line-height: 1.6; background: #fafafa; }
+  h1 { font-size: 1.4em; margin-bottom: 0.4em; }
+  .bar { position: sticky; top: 0; background: #fafafa; padding: 0.8em 0; border-bottom: 1px solid var(--line);
+         display: flex; align-items: center; gap: 1em; flex-wrap: wrap; z-index: 5; }
+  .toggle { display: inline-flex; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+  .toggle button { border: 0; border-right: 1px solid #ccc; background: #fff; padding: 0.45em 0.9em;
+                   font-size: 0.9em; cursor: pointer; color: #444; }
+  .toggle button:last-child { border-right: 0; }
+  .toggle button.active { background: #2e7d32; color: #fff; }
+  .summary { font-size: 0.88em; color: #666; }
+  .legend { font-size: 0.8em; color: #666; display: none; gap: 1.2em; margin: 0.6em 0 0; }
+  .legend.show { display: flex; flex-wrap: wrap; }
+  .legend span.k { padding: 0 4px; border-radius: 3px; }
+  .doc { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.2em 1.4em; margin-top: 1em; }
+  .note { font-size: 0.78em; color: #888; margin-top: 1.2em; }
+  p.para { margin: 0 0 1em; }
+  del { color: var(--del); background: var(--del-bg); text-decoration: line-through; border-radius: 2px; padding: 0 2px; }
+  ins { color: var(--ins); background: var(--ins-bg); text-decoration: none; border-radius: 2px; padding: 0 2px; }
+  /* Mit der Maus ueber eine geaenderte Stelle (gruen oder rot) fahren, um den Grund zu sehen. */
+  .chg { position: relative; cursor: help; }
+  .chg:hover::after {
+    content: attr(data-why); position: absolute; left: 0; bottom: 130%;
+    background: #222; color: #fff; font-size: 0.74em; line-height: 1.35; font-style: normal;
+    padding: 5px 9px; border-radius: 6px; white-space: normal; width: max-content; max-width: 280px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18); z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<h1>Stilrevision — /humanize</h1>
+
+<div class="bar">
+  <span class="toggle">
+    <button id="btn-first" onclick="setView('first')">Erster Entwurf</button>
+    <button id="btn-second" class="active" onclick="setView('second')">Bereinigt</button>
+    <button id="btn-diff" onclick="setView('diff')">Diff</button>
+  </span>
+  <span class="summary" id="summary"></span>
+</div>
+<div class="legend" id="legend">
+  <span><span class="k" style="background:var(--del-bg);color:var(--del);text-decoration:line-through">entfernt</span> gestrichen</span>
+  <span><span class="k" style="background:var(--ins-bg);color:var(--ins)">umgeschrieben</span> neu formuliert</span>
+  <span>fuer den Grund mit der Maus ueber die farbige Stelle fahren</span>
+</div>
+
+<div class="doc" id="doc"></div>
+
+<p class="note">Pruefhilfe. Massgeblich bleibt die Markdown-Quelle des Kapitels. Belege (APA) und Zahlen muessen zwischen „Erster Entwurf" und „Bereinigt" unveraendert sein.</p>
+
+<script>
+// Ein Eintrag pro Satz. Typ "keep" bleibt unveraendert. Typ "edit" wurde umgeschrieben
+// (old -> new). Typ "del" wurde gestrichen. "why" ist ein kurzer Grund.
+// Der Agent ersetzt die DATA-Zuweisung unten durch die echte Liste als JSON.
+const DATA = __DATA__;
+
+function para(text) { return `<p class="para">${text}</p>`; }
+
+// Erster Entwurf: der Originaltext vor dem zweiten Durchgang.
+function renderFirst() {
+  return DATA.map(p => para(
+    p.items.map(it => it.type === "keep" ? it.text : it.old).join(" ")
+  )).join("");
+}
+
+// Bereinigt: der finale Text nach dem zweiten Durchgang.
+function renderSecond() {
+  return DATA.map(p => para(
+    p.items.map(it => it.type === "keep" ? it.text : it.type === "edit" ? it.new : "")
+            .filter(Boolean).join(" ")
+  )).join("");
+}
+
+function attr(s) { return s.replace(/"/g, "&quot;"); }
+
+// Diff: der erste Entwurf mit Streichungen (durchgestrichen) und Umschreibungen (gruen).
+function renderDiff() {
+  return DATA.map(p => para(
+    p.items.map(it => {
+      if (it.type === "keep") return it.text;
+      if (it.type === "del") return `<del class="chg" data-why="${attr(it.why)}">${it.old}</del>`;
+      return `<del>${it.old}</del> <ins class="chg" data-why="${attr(it.why)}">${it.new}</ins>`;
+    }).join(" ")
+  )).join("");
+}
+
+const RENDER = { first: renderFirst, second: renderSecond, diff: renderDiff };
+
+function setView(v) {
+  ["first", "second", "diff"].forEach(k =>
+    document.getElementById("btn-" + k).classList.toggle("active", k === v));
+  document.getElementById("legend").classList.toggle("show", v === "diff");
+  document.getElementById("doc").innerHTML = RENDER[v]();
+}
+
+const nEdit = DATA.flatMap(p => p.items).filter(i => i.type === "edit").length;
+const nDel = DATA.flatMap(p => p.items).filter(i => i.type === "del").length;
+document.getElementById("summary").textContent =
+  `Zweiter Durchgang: ${nEdit} ${nEdit === 1 ? "Satz" : "Saetze"} umgeschrieben, ${nDel} gestrichen.`;
+setView("second");
+</script>
+</body>
+</html>

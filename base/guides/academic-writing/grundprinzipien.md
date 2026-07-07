@@ -18,6 +18,20 @@
 - Logische Übergänge zwischen Absätzen und Kapiteln
 - Keine Gedankensprünge
 
+## Klarheit und Satzbau
+
+Klarheit hat Vorrang vor Kürze und vor Länge. Ein gedrängter Schachtelsatz wird
+nicht nur gekürzt, sondern in mehrere klare Sätze aufgeteilt.
+
+- Ein Gedanke pro Satz. Trägt ein Satz zwei eigenständige Aussagen, in zwei Sätze teilen.
+- Mehrere Aussagen nicht mit Semikolon oder Doppelpunkt in eine dichte Zeile stapeln
+  (vgl. writing-style: kein Semikolon, selten Doppelpunkte).
+- Distinkte Einzelaspekte erhalten je einen eigenen Satz, nicht eine überladene
+  Aufzählung in einem Satz. "Plain" heißt hier nicht "knapp".
+- Wissenschaftliches Passiv und unpersönliche Form bleiben erlaubt, aber nicht auf
+  Kosten der Lesbarkeit: Macht ein Nominalstil den Satz schwer entzifferbar, in eine
+  klarere Verbalkonstruktion auflösen (ohne in die Ich-Form zu wechseln).
+
 ## Wissenschaftliche Sprache
 
 ### Geboten
@@ -55,3 +69,4 @@ JA: Mit 37 Prozent artikuliert mehr als ein Drittel der Befragten auch Risiken
 - [ ] Fachbegriffe definiert?
 - [ ] Alle Behauptungen belegt?
 - [ ] Schlussfolgerungen nachvollziehbar?
+- [ ] Ein Gedanke pro Satz, keine überladenen Sammelsätze?

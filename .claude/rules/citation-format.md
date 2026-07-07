@@ -22,7 +22,7 @@ globs: ["sources/**"]
 - Bei 3+: Alle auflisten (Slash-getrennt)
 
 ## Quellentypen
-- buch, journal, sammelband, konferenz, website, report
+- buch, journal, sammelband, konferenz, website, report, working_paper
 
 ## Zitat-Typen
 - indirekt: Paraphrase (sinngemäß)
@@ -40,6 +40,16 @@ Begründung jedes Punktes steht in `LESSONS.md` (Abschnitt „Quellen-Lessons").
 ### Working Papers vollständig zitieren
 - **Pflichtfelder:** Reihen-Name, Nummer, URL oder DOI.
 - **Beispiel:** „Auer, R. A., Cornelli, G., & Frost, J. (2020). Rise of the Central Bank Digital Currencies. CESifo Working Paper No. 8655. https://www.cesifo.org/..."
+- **YAML:** `quelle_typ: working_paper` mit eigenen Feldern `reihe:` und `nummer:`
+  (statt die Reihe ins `verlag`-Feld zu schmuggeln). `build_docx.py` rendert dann
+  „<Titel>. <Reihe> <Nummer>. <URL>"; ohne URL greift `doi` als Fallback. `report`
+  unterstützt dieselben Felder. Beispiel-YAML:
+  ```yaml
+  quelle_typ: working_paper
+  reihe: "CESifo Working Paper"
+  nummer: "No. 8655"
+  url: "https://www.cesifo.org/..."
+  ```
 
 ### Suffix-Konsistenz: kein _b ohne _a
 - Wenn nur EINE Quelle eines Autors/Jahres existiert → kein Suffix.

@@ -80,6 +80,7 @@ Ab hier wiederholst du `/next` und `/approve`, bis die Arbeit fertig ist.
 | `/status` | Fortschritt anzeigen (mit Self-Healing) |
 | `/write [X.X]` | Kapitel schreiben |
 | `/review [X.X]` · `--all` | Qualitätsprüfung (3 Agenten parallel) |
+| `/humanize [X.X]` · `--all` | KI-Schreibspuren entfernen, Stil natürlicher (Stilpass; Inhalt/Zitate/Zahlen unverändert) |
 | `/cite` | Quelle hinzufügen (PDF, manuell, BibTeX, Zotero) |
 | `/preflight` | Blockierendes Pre-Compile-Gate |
 | `/compile` | IU-DOCX + PDF bauen |

@@ -5,7 +5,7 @@ description: Startet die Qualitätsprüfung für ein Kapitel. Nutze diesen Skill
 
 # Qualitätsprüfung
 
-Prüft ein geschriebenes Kapitel durch drei spezialisierte Reviewer-Agenten.
+Prüft ein geschriebenes Kapitel durch vier spezialisierte Reviewer-Agenten.
 
 ## Ablauf
 
@@ -30,22 +30,24 @@ Falls das Kapitel noch nicht geschrieben ist:
 ### 3. Drei Reviewer PARALLEL starten
 
 Erkläre dem User:
-"Ich prüfe Kapitel [X.X] mit drei spezialisierten Agenten parallel:
+"Ich prüfe Kapitel [X.X] mit vier spezialisierten Agenten parallel:
 1. Sprachprüfung (Stil, verbotene Wörter, Wiederholungen)
 2. Zitationsprüfung (Format, Dichte, Vollständigkeit)
 3. Argumentationsprüfung (Logik, Roter Faden, Übergänge)
+4. KI-Stil-Prüfung (Anzeichen KI-generierten Schreibens, Natürlichkeit)
 Das dauert einen Moment..."
 
-**WICHTIG: Starte alle drei Agents gleichzeitig (parallel), nicht nacheinander.**
-Die drei Reviews sind unabhängig voneinander und können parallel laufen:
+**WICHTIG: Starte alle vier Agents gleichzeitig (parallel), nicht nacheinander.**
+Die vier Reviews sind unabhängig voneinander und können parallel laufen:
 
 - Starte `.claude/agents/reviewer-language.md`
 - Starte `.claude/agents/reviewer-citations.md`
 - Starte `.claude/agents/reviewer-argumentation.md`
+- Starte `.claude/agents/reviewer-ai-style.md`
 
 ### 4. Ergebnisse konsolidieren
 
-Sobald alle drei fertig sind, fasse die Berichte zusammen:
+Sobald alle vier fertig sind, fasse die Berichte zusammen:
 
 ```
 === Review-Ergebnis: Kapitel [X.X] ===
@@ -55,6 +57,7 @@ Sobald alle drei fertig sind, fasse die Berichte zusammen:
 | Sprache & Stil | [X] | [hoch/mittel/niedrig] |
 | Zitationen | [X] | [hoch/mittel/niedrig] |
 | Argumentation | [X] | [hoch/mittel/niedrig] |
+| KI-Stil & Natürlichkeit | [X] | [hoch/mittel/niedrig] |
 
 Gesamtempfehlung: [Freigabe / Kleine Überarbeitung / Größere Revision]
 ```
@@ -67,6 +70,7 @@ Falls Korrekturen nötig:
 
 Wenn der User zustimmt:
 - Setze sprachliche Korrekturen um
+- Setze eindeutige KI-Stil-Korrekturen um (für umfangreiche Umschreibungen: `/humanize [X.X]`)
 - Setze Zitationskorrekturen um
 - Melde Argumentations-Probleme die manuelle Entscheidung brauchen
 
@@ -89,6 +93,18 @@ Wenn `false`: Skip.
 
 - "Prüfe die Änderungen und nutze /approve um das Review freizugeben."
 - Falls Codex zusätzliche Funde meldet: zuerst diese adressieren.
+
+### 9. Review-Tracking markieren
+
+Nach Abschluss des Reviews den geprüften Stand des Kapitels markieren, damit
+`/preflight` später erkennt, ob danach noch Text ergänzt wurde (sonst läuft
+nachträglicher Text ungeprüft durch):
+
+```bash
+python3 scripts/review_tracking.py mark output/phase-05-writing/final/kapitel-[N].md review
+```
+
+Im Batch-Modus (`/review --all`) für jedes geprüfte Kapitel ausführen.
 
 ## Batch-Modus (`/review --all`)
 

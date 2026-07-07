@@ -89,10 +89,14 @@ Output-Format:
 
 Bash:
 ```bash
-codex review --uncommitted -- "<prompt>"
+# WICHTIG: stdin auf /dev/null umleiten. Ohne `< /dev/null` blockiert
+# `codex exec`/`codex review` im Hintergrund lesend auf stdin (real beobachtet:
+# stundenlanger Hänger). `-C "$(pwd)"` bindet das Arbeitsverzeichnis,
+# `-s read-only` hält den Review nicht-schreibend.
+codex review --uncommitted -C "$(pwd)" -- "<prompt>" < /dev/null
 # oder für DOCX-Validierung:
 python3 scripts/validate_docx.py output/phase-07-docx/<latest>.docx && \
-codex exec -- "<docx-prompt>"
+codex exec "<docx-prompt>" -C "$(pwd)" -s read-only < /dev/null
 ```
 
 Codex nutzt automatisch die Defaults aus `~/.codex/config.toml`:
@@ -102,7 +106,7 @@ Codex nutzt automatisch die Defaults aus `~/.codex/config.toml`:
 Falls in der Repo-`config.yaml` ein anderes Modell gewünscht ist (z. B.
 für günstigere Auto-Reviews):
 ```bash
-codex review --uncommitted -c model="gpt-5.5-mini" -c model_reasoning_effort="medium" -- "<prompt>"
+codex review --uncommitted -c model="gpt-5.5-mini" -c model_reasoning_effort="medium" -- "<prompt>" < /dev/null
 ```
 
 ### 5. Ergebnis darstellen
@@ -157,3 +161,6 @@ Rauschen im Workflow. Schalter: `/codex-review --quiet`.
 - `codex` nicht installiert → klare Anleitung, kein Crash.
 - `codex` läuft, aber Authentifizierung fehlt → `codex login` empfehlen.
 - API-Quota erschöpft → einmal warnen, weiter ohne Auto-Review (Skill nicht blockierend).
+- Hängt scheinbar endlos (besonders im Auto-Hook/Hintergrund) → fehlende
+  stdin-Umleitung. JEDER `codex`-Aufruf MUSS auf `< /dev/null` enden, sonst
+  blockiert Codex lesend auf stdin.

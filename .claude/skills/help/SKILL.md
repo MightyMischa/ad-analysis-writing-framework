@@ -28,6 +28,8 @@ Verfügbare Befehle:
   /write [X.X]      Bestimmtes Kapitel schreiben (Phase 5)
   /review [X.X]     Kapitel zur Qualitätsprüfung (Phase 6, 3 Agenten parallel)
   /review --all     Alle ungeprüften Kapitel nacheinander prüfen
+  /humanize [X.X]   KI-Schreibspuren entfernen, Stil natürlicher machen
+  /humanize --all   Alle freigegebenen Kapitel humanisieren
   /cite             Neue Quelle oder Zitat hinzufügen
   /preflight        Blockierendes Pre-Compile-Gate (Validator + Drift + Pitfalls)
   /compile          IU-DOCX + PDF bauen (Phase 7, via scripts/build_docx.py)

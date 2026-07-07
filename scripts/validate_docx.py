@@ -158,6 +158,52 @@ def check_toc_anchors(doc_xml: str):
     return issues
 
 
+def _style_block(styles_xml: str, style_id: str):
+    m = re.search(
+        r'<w:style [^>]*w:styleId="' + style_id + r'".*?</w:style>',
+        styles_xml,
+        re.DOTALL,
+    )
+    return m.group(0) if m else None
+
+
+def _style_is_bold(style_block: str) -> bool:
+    """True, wenn der Style fett ist: <w:b/> vorhanden und nicht per val
+    abgeschaltet (val='0'/'false'/'off')."""
+    m = re.search(r"<w:b\b([^>]*)/>", style_block)
+    if not m:
+        return False
+    val = re.search(r'w:val="([^"]+)"', m.group(1))
+    return not (val and val.group(1).lower() in ("0", "false", "off"))
+
+
+def check_toc_levels(styles_xml: str):
+    """F6 (Teil 2): Inhaltsverzeichnis-Ebene 1 fett, Ebenen 2/3 vorhanden + nicht fett.
+
+    Word legt TOC 2/TOC 3 beim Feld-Update sonst selbst an — mit inkonsistenter
+    Fett-Optik. Der Build definiert daher TOC 1 (fett) + TOC 2/TOC 3 (nicht fett)
+    explizit. python-docx serialisiert den styleId ohne Leerzeichen (TOC1/2/3).
+    """
+    issues = []
+    toc1 = _style_block(styles_xml, "TOC1")
+    if toc1 is None:
+        issues.append("F6: TOC-1-Style fehlt — Inhaltsverzeichnis-Ebene 1 nicht garantiert fett.")
+    elif not _style_is_bold(toc1):
+        issues.append("F6: TOC-1-Style ist nicht fett (<w:b/> fehlt) — Ebene 1 muss fett sein.")
+    for sid, lvl in (("TOC2", 2), ("TOC3", 3)):
+        block = _style_block(styles_xml, sid)
+        if block is None:
+            issues.append(
+                f"F6: TOC-{lvl}-Style fehlt — Word erzeugt ihn sonst selbst, "
+                "der Fett/Normal-Kontrast zu Ebene 1 ist dann nicht garantiert."
+            )
+        elif _style_is_bold(block):
+            issues.append(
+                f"F6: TOC-{lvl}-Style ist fett — Ebenen 2/3 müssen normal (nicht fett) sein."
+            )
+    return issues
+
+
 def check_table_of_tables(doc_xml: str):
     has_seq = "SEQ Tabelle" in doc_xml
     has_toc_table = re.search(r'TOC[^"]*\\c\s*"Tabelle"', doc_xml) is not None
@@ -367,6 +413,92 @@ def check_number_source_uniqueness(doc_xml: str, proximity_chars: int = 220):
     return issues
 
 
+# ----- Quellen-Aktualität (A1/A2, HINWEIS) ----------------------------------
+
+def _parse_lit_blocks(repo_root: Path) -> list[dict]:
+    """Minimal-Parser für literature.md PART 1 (ohne yaml-Dependency).
+
+    Gibt je Stammdaten-Block quelle_typ/jahr/titel/reihe/autor zurück.
+    """
+    lit = repo_root / "sources" / "literature.md"
+    if not lit.exists():
+        return []
+    text = re.split(r"#\s*PART 2", lit.read_text(encoding="utf-8"), maxsplit=1)[0]
+    out: list[dict] = []
+    for blk in re.split(r"\n---\n", "\n" + text + "\n"):
+        if "quelle_id:" not in blk or re.search(r"^id:\s", blk, re.MULTILINE):
+            continue
+
+        def field(key: str) -> str:
+            m = re.search(r'^' + key + r':\s*"?(.+?)"?\s*$', blk, re.MULTILINE)
+            return m.group(1).strip() if m else ""
+
+        out.append(
+            {
+                "quelle_typ": field("quelle_typ"),
+                "jahr": field("jahr"),
+                "titel": field("titel"),
+                "reihe": field("reihe"),
+                "autor": field("autor"),
+            }
+        )
+    return out
+
+
+def _read_aktualitaets_anker(repo_root: Path) -> list[str]:
+    """Anker-Begriffe aus preferences.md (Abschnitt „Aktualitäts-Anker").
+
+    Domänen-spezifisch und optional — fehlt der Abschnitt, gibt es keine Anker
+    (das Framework selbst bleibt fachneutral).
+    """
+    pref = repo_root / "preferences.md"
+    if not pref.exists():
+        return []
+    m = re.search(r"##+\s*Aktualit.ts-Anker.*?\n(.*?)(?=\n##|\Z)", pref.read_text(encoding="utf-8"), re.DOTALL)
+    if not m:
+        return []
+    terms = []
+    for raw in re.findall(r"^[-*]\s*(.+?)\s*$", m.group(1), re.MULTILINE):
+        term = re.split(r"[(:–—]", raw, maxsplit=1)[0].strip()
+        if len(term) >= 3:
+            terms.append(term)
+    return terms
+
+
+def check_source_currency(repo_root: Path):
+    """A1/A2 (HINWEIS, nicht blockierend): zeitkritische Quellen-Aktualität.
+
+    A1: report/website-Quelle mit Jahr < aktuellem Jahr — evtl. neuere Auflage.
+    A2: Quelle trägt einen Aktualitäts-Anker-Begriff (aus preferences.md).
+
+    Reagiert auf den Reviewer-Pitfall „GSMA-Jahresbericht 2025 statt 2026", der
+    bisher nur einem Menschen, keinem Skript auffiel.
+    """
+    from datetime import date
+
+    current_year = date.today().year
+    anchors = _read_aktualitaets_anker(repo_root)
+    issues = []
+    for s in _parse_lit_blocks(repo_root):
+        typ = s["quelle_typ"].lower()
+        label = (s["titel"] or s["autor"] or "?")[:70]
+        ym = re.search(r"(?:19|20)\d{2}", s["jahr"])
+        year = int(ym.group(0)) if ym else None
+        if typ in ("report", "website") and year and year < current_year:
+            issues.append(
+                f"A1: {typ}-Quelle «{label}» ist von {year} (< {current_year}); "
+                "prüfen, ob eine neuere Auflage/Jahreszahl vorliegt."
+            )
+        hay = f"{s['titel']} {s['reihe']} {s['autor']}".lower()
+        hit = next((a for a in anchors if a.lower() in hay), None)
+        if hit:
+            issues.append(
+                f"A2: Quelle «{label}» trägt Aktualitäts-Anker «{hit}»; "
+                "Kennzahlen vor Abgabe frisch gegenprüfen."
+            )
+    return issues
+
+
 # ----- Main ------------------------------------------------------------------
 
 def validate(docx_path: Path, repo_root: Path | None = None):
@@ -388,6 +520,7 @@ def validate(docx_path: Path, repo_root: Path | None = None):
     issues.extend(check_hanging_indent(document_xml))
     issues.extend(check_page_numbering(document_xml))
     issues.extend(check_toc_anchors(document_xml))
+    issues.extend(check_toc_levels(styles_xml))
     issues.extend(check_table_of_tables(document_xml))
     issues.extend(check_abgabedatum(document_xml))
     issues.extend(check_language_pitfalls(document_xml))
@@ -406,18 +539,29 @@ def main():
     ap.add_argument("--strict", action="store_true", help="Exit 1 bei Funden")
     args = ap.parse_args()
 
-    issues = validate(args.docx)
-    if not issues:
-        print(f"✓ {args.docx.name}: keine Verstöße gegen IU-Vorgaben.")
-        return 0
+    repo_root = Path.cwd()
+    issues = validate(args.docx, repo_root)
+    hints = check_source_currency(repo_root)
 
-    print(f"⚠ {args.docx.name}: {len(issues)} Verstöße gegen IU-Vorgaben")
-    print()
-    for i, msg in enumerate(issues, 1):
-        print(f"  {i:2d}. {msg}")
-    print()
-    print("Begründung jedes Codes (F1, F2, ...) steht in LESSONS.md (Repo-Root).")
-    return 1 if args.strict else 0
+    if issues:
+        print(f"⚠ {args.docx.name}: {len(issues)} Verstöße gegen IU-Vorgaben")
+        print()
+        for i, msg in enumerate(issues, 1):
+            print(f"  {i:2d}. {msg}")
+        print()
+        print("Begründung jedes Codes (F1, F2, ...) steht in LESSONS.md (Repo-Root).")
+    else:
+        print(f"✓ {args.docx.name}: keine Verstöße gegen IU-Vorgaben.")
+
+    # A1/A2-Aktualitätshinweise getrennt ausgeben — nie blockierend, zählen nicht
+    # als Verstoß und beeinflussen den Exit-Code nicht (auch nicht unter --strict).
+    if hints:
+        print()
+        print(f"ℹ {len(hints)} Aktualitäts-Hinweis(e) (nicht blockierend):")
+        for msg in hints:
+            print(f"   - {msg}")
+
+    return 1 if (issues and args.strict) else 0
 
 
 if __name__ == "__main__":

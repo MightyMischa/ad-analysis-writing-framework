@@ -33,7 +33,20 @@ Damit Word-TOC-Field die Verzeichnisse aufnimmt:
 - `p_inhaltsverzeichnis.style = doc.styles['Heading 1']`
 - `p_abkuerzungsverzeichnis.style = doc.styles['Heading 1']`
 - `p_literaturverzeichnis.style = doc.styles['Heading 1']`
-- Plus: `doc.styles['TOC 1'].font.bold = True` damit erste Ebene fett.
+
+### TOC-Ebenen-Stile (Ebene 1 fett, 2/3 normal)
+
+Frühere Annahme war, `doc.styles['TOC 1'].font.bold = True` allein genüge. Das
+stimmt NICHT: Word legt `TOC 2`/`TOC 3` beim Feld-Update selbst an — mit
+inkonsistenter Fett-Optik, sodass Ebene 1 nicht zuverlässig fett wirkt. Daher
+alle drei Ebenen explizit definieren:
+
+- `TOC 1` → fett (IU-Vorgabe „erste Ebene fett")
+- `TOC 2` → ausdrücklich `font.bold = False`
+- `TOC 3` → ausdrücklich `font.bold = False`
+
+Geprüft von `validate_docx.py::check_toc_levels`: TOC1 muss `<w:b/>` tragen,
+TOC2/TOC3 müssen vorhanden und nicht fett (`<w:b w:val="0"/>`) sein.
 
 ## Tabellenverzeichnis (wenn Tabellen-Caption mit SEQ)
 
@@ -90,3 +103,21 @@ python3 scripts/validate_docx.py output/phase-07-docx/<datei>.docx
 
 Bei Verstößen → Build-Skript anpassen, NICHT manuell in Word korrigieren
 (verloren beim nächsten Build).
+
+## Nur im echten Render prüfbar (nicht im XML)
+
+`validate_docx.py` arbeitet rein auf dem DOCX-XML. Die am stärksten benoteten
+Formalvorgaben sind aber **Render-Fragen**, die das XML NICHT entscheidet:
+
+- **Seitenumfang 7–10 Seiten Textteil** (Einleitung bis Fazit, ohne Verzeichnisse)
+- **≥ 0,5 Seite je Unterkapitel**
+- **Seitenzahlen sichtbar korrekt**: Titelblatt ohne Zahl, Frontmatter römisch
+  (Inhaltsverzeichnis = II), Body arabisch ab Einleitung = 1
+- **Inhaltsverzeichnis-Ebene 1 optisch fett** nach Feld-Update
+- **letzte Textseite nicht fast leer**
+
+„`validate_docx.py` grün" heißt also NICHT „Dokument korrekt". Die Wort-→-Seiten-
+Heuristik ist nur eine grobe Schätzung: kalibrierter Richtwert **~330 Wörter/Seite**
+(Arial 11, 1,5-zeilig), nicht 250. Die Render-Punkte gehören in die verbindliche
+Word-Gate-Checkliste des `/preflight`-Skills (Schritt „F9 + Sichtprüfung"), nicht
+in eine Fußnote.

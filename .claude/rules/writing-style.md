@@ -51,6 +51,8 @@ globs: ["output/**/*.md"]
 - Fachbegriffe beim ersten Auftreten definieren
 - Zahlen in Sätze integrieren (nicht in Klammern)
 - Wörter aus preferences.md vermeiden
+- Ein Gedanke pro Satz; bei zwei eigenständigen Aussagen in zwei Sätze teilen
+- Distinkte Aspekte je eigener Satz statt überladener Sammelsätze (Klarheit vor Kürze; Details: grundprinzipien „Klarheit und Satzbau")
 
 ## Sprach-Pitfalls aus Reviewer-Feedback
 

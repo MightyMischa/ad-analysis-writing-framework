@@ -289,6 +289,49 @@ um diesen Katalog gegen den aktuellen Repo-Stand automatisch zu prüfen.
 - **Pitfall:** Das Tabellenverzeichnis hatte keinen Heading-1-Stil → fehlte als Eintrag im Inhaltsverzeichnis. Das Inhaltsverzeichnis war selbst Heading 1 → listete sich selbst.
 - **Korrekt:** `p_tab_title.style = Heading 1` (erscheint im TOC), Inhaltsverzeichnis-Titel NICHT als Heading 1 (Optik per Run-Format halten). F6 verlangt nur ≥ 4 Heading-1-Absätze → bleibt grün.
 
+## Build-/Tooling-Lessons (zurückportiert 2026-06-24 aus „nachhaltigkeit-innovation-finanzwesen" / M-Pesa)
+
+### B-CiteCI — In-Text-Zitate case-insensitiv matchen (sonst fällt eine Quelle aus dem Lit-Verz)
+- **Pitfall:** `build_docx.get_used_sources` matchte In-Text-Zitate als CASE-SENSITIVE Substring (Pattern aus Nachname + Jahr). Ein satzinitial großgeschriebener Partikel-Nachname („De Vries (2018") matchte die Stammform „de Vries (2018" NICHT → die zitierte Quelle fehlte im Literaturverzeichnis (echter APA-Fehler). Beinahe abgegeben.
+- **Korrekt:** `_cite_in_text()` matcht case-insensitiv (`re.IGNORECASE`) mit Wortgrenzen-Guard `(?<!\w)`, damit ein Kürzel nicht mitten in einem Wort matcht (z. B. „un, 2015" in „Jun, 2015" für eine UN-Quelle). Verankerung durch Jahr + „(" / „, " hält Falsch-Positive nahe null.
+
+### B-DriftBlock — „zitiert, aber nicht im Lit-Verz" ist BLOCKIEREND, nicht nur Warnung
+- **Pitfall:** `check_lit_verz_drift` meldete eine im Volltext zitierte, aber im gerenderten Lit-Verz fehlende Quelle nur als nicht-blockierende Warnung („Stammdaten ohne DOCX-Verwendung"). Genau das Symptom von B-CiteCI rutschte so durch.
+- **Korrekt:** `only_in_md` aufteilen: im Volltext zitiert + fehlt im Lit-Verz → BLOCKIEREND (`source_cited_in_text`, gespiegelte Match-Logik); nirgends zitierte Stammdaten bleiben Warnung. Zusätzlich `abk`-Feld als Inline-Schlüssel (institutionelle Zitate „(UN, 2015)") gegen Falsch-Orphans.
+
+### B-TOCLevels — TOC 1 fett UND TOC 2/3 explizit nicht fett (war nur halb umgesetzt)
+- **Pitfall:** Der Build setzte nur `TOC 1` fett; `TOC 2`/`TOC 3` existierten nicht und wurden von Word beim Feld-Update selbst angelegt — mit inkonsistenter Fett-Optik. `format-checks.md` behauptete fälschlich „erledigt". Ebene 1 war nicht zuverlässig fett (Notenkriterium).
+- **Korrekt:** Build definiert `TOC 1` (fett) + `TOC 2`/`TOC 3` (`bold=False`) explizit. `validate_docx.check_toc_levels` prüft: TOC1 hat `<w:b/>`, TOC2/TOC3 vorhanden + nicht fett. format-checks.md ehrlich korrigiert.
+
+### B-RenderGate — „validate_docx grün" ≠ „Dokument korrekt"
+- **Pitfall:** Die stärkst benoteten Vorgaben (7–10 Seiten Textteil, ≥ 0,5 Seite je Unterkapitel, sichtbare Seitenzahlen II/1, optische TOC-Fettung) sind reine Render-Fragen, die der XML-Validator nicht prüfen kann. Die Heuristik Wörter ÷ 250 lag massiv daneben (echter Render ~330/Seite) → Schätzungen 7,6 bis 11,8 Seiten für dasselbe Dokument.
+- **Korrekt:** Preflight trennt „XML-verifiziert" von „nur im Render prüfbar" und führt eine VERBINDLICHE Word-Gate-Checkliste (Schritt 2.6: F9-Feldupdate, Seitenzahlen, TOC-Ebene-1 fett, letzte Seite nicht fast leer, 7–10 Seiten). Wortzahl-Richtwert auf ~330 kalibriert und als grobe Schätzung gekennzeichnet.
+- **Soft-Messung:** `scripts/measure_pages.py` misst den Textteil real, wenn LibreOffice (soffice) vorhanden ist (Lit-Verz-Anker = LETZTES Vorkommen, robust gegen gefüllten TOC); fehlt LibreOffice, meldet es `RENDER_UNAVAILABLE` und das manuelle Gate greift. Kein harter LibreOffice-Zwang.
+
+### B-GlobStrict — strikte Kapitel-Whitelist statt „*.md minus .prehum."
+- **Pitfall:** Der Kapitel-Glob `*.md` minus `.prehum.` zog andere Backups in `final/` mit (`.bak3`, `.precodex.md`, `.precodex2.md`) → als zusätzliche „Kapitel" gerendert.
+- **Korrekt:** Strikte Whitelist `kapitel-<Zahl>.md` über `glob("kapitel-*.md")` + Regex `^kapitel-\d+(?:[.\-]\d+)*\.md$`.
+
+### B-JournalURL — Journal ohne DOI braucht URL-Fallback
+- **Pitfall:** Der journal-Branch rendert nur `doi`, nicht `url`. Law-/SSRN-Journals ohne DOI (z. B. Arner 2016) verloren ihren stabilen Link.
+- **Korrekt:** `elif e.get("url")` als Fallback im journal-Branch.
+
+### B-WorkingPaper — `quelle_typ: working_paper` mit `reihe`/`nummer`
+- **Pitfall:** Der report-Branch ignorierte `reihe`/`nummer`; die Reihe musste ins `verlag`-Feld geschmuggelt werden (Reviewer-Pitfall Q1).
+- **Korrekt:** Neuer Typ `working_paper` (und `report`) rendern „<Titel>. <Reihe> <Nummer>. <URL>", `doi` als Fallback ohne URL.
+
+### B-SourceCurrency — Quellen-Aktualität als nicht-blockierender Hinweis
+- **Pitfall:** Veraltete zeitkritische Quellen (z. B. GSMA-Jahresbericht 2025 statt 2026) fielen nur einem externen Reviewer auf, keinem Skript.
+- **Korrekt:** `validate_docx.check_source_currency` meldet report/website-Quellen mit Jahr < aktuellem Jahr (A1) und Treffer von Aktualitäts-Ankern aus preferences.md (A2) als HINWEIS — nie blockierend, separat vom Verstoß-Zähler und ohne Einfluss auf den Exit-Code.
+
+### B-CodexStdin — `codex exec`/`codex review` MUSS stdin auf /dev/null umleiten
+- **Pitfall:** `codex exec "$PROMPT" …` ohne `< /dev/null` blockiert im Hintergrund lesend auf stdin (real beobachtet: stundenlanger Hänger im Auto-Hook).
+- **Korrekt:** Jeder Codex-Aufruf endet auf `< /dev/null`, dazu `-C "$(pwd)"` und `-s read-only` bei `codex exec`.
+
+### B-ReviewTracking — Kapitel-Änderungen nach /review und /humanize erkennen
+- **Pitfall:** Text, der NACH einem /review- oder /humanize-Lauf ergänzt wurde, lief ungeprüft durch; das musste ein Mensch bemerken.
+- **Korrekt:** `scripts/review_tracking.py mark <kapitel> <stage>` legt den Body-Hash (ohne Frontmatter) in `output/progress.json` ab; `review_tracking.py check` (Preflight-Schritt 2.7) warnt nicht-blockierend, wenn der aktuelle Hash abweicht. /review und /humanize rufen `mark` am Ende auf.
+
 ---
 
 ## Prozess-/Workflow-Lessons (Session 2026-06-18)

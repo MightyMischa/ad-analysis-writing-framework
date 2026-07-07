@@ -44,6 +44,7 @@ except ImportError:
 LIT_AUTHOR_RE = re.compile(r'^autor:\s*"?(?P<v>[^"\n]+)"?\s*$', re.MULTILINE)
 LIT_YEAR_RE = re.compile(r'^jahr:\s*"?(?P<v>[^"\n]+)"?\s*$', re.MULTILINE)
 LIT_ID_RE = re.compile(r'^quelle_id:\s*(?P<v>\S+)\s*$', re.MULTILINE)
+LIT_ABK_RE = re.compile(r'^abk:\s*"?(?P<v>[^"\n]+)"?\s*$', re.MULTILINE)
 
 
 def parse_literature_md(path: Path) -> list[dict]:
@@ -67,6 +68,7 @@ def parse_literature_md(path: Path) -> list[dict]:
         m_id = LIT_ID_RE.search(blk)
         m_au = LIT_AUTHOR_RE.search(blk)
         m_yr = LIT_YEAR_RE.search(blk)
+        m_abk = LIT_ABK_RE.search(blk)
         if not (m_id and m_au and m_yr):
             continue
         sources.append(
@@ -74,6 +76,7 @@ def parse_literature_md(path: Path) -> list[dict]:
                 "quelle_id": m_id.group("v").strip(),
                 "autor": m_au.group("v").strip(),
                 "jahr": m_yr.group("v").strip(),
+                "abk": m_abk.group("v").strip() if m_abk else "",
             }
         )
     return sources
@@ -217,6 +220,46 @@ def inline_cite_keys(cites: Iterable[tuple[str, str]]) -> set[tuple[str, str]]:
     return keys
 
 
+def source_key(source: dict) -> tuple[str, str]:
+    """Reduziere eine Stammdaten-Quelle auf denselben Schlüssel wie lit_md_keys."""
+    names = author_lastnames(source["autor"])
+    return (names[0].lower() if names else "", source["jahr"])
+
+
+def body_fulltext(doc: Document) -> str:
+    """Volltext vor dem Literaturverzeichnis (für Zitat-Präsenz-Checks)."""
+    start, _ = find_lit_verz(doc)
+    paras = doc.paragraphs[: start if start > 0 else len(doc.paragraphs)]
+    return "\n".join(p.text for p in paras)
+
+
+def source_cited_in_text(source: dict, body_text: str) -> bool:
+    """Kommt die Quelle als In-Text-Zitat im Volltext vor?
+
+    Heuristik gespiegelt aus build_docx.get_used_sources: case-insensitiv mit
+    Wortgrenzen-Guard ``(?<!\\w)``, damit kurze Kürzel nicht mitten in Wörtern
+    matchen. Dient als Sicherheitsnetz, um zu erkennen, ob eine NICHT gerenderte
+    Quelle in Wahrheit zitiert wurde (dann hat der Build sie verschluckt)."""
+    autor = source.get("autor", "")
+    jahr = source.get("jahr", "")
+    abk = source.get("abk", "")
+    patterns: list[str] = []
+    if "," not in autor.split("/")[0]:  # institutionelle Quelle
+        name = autor.split("/")[0].strip()
+        patterns += [f"{name} ({jahr}", f"{name}, {jahr}"]
+        if abk:
+            patterns += [f"{abk} ({jahr}", f"{abk}, {jahr}",
+                         f"[{abk}] ({jahr}", f"[{abk}], {jahr}"]
+    else:
+        first = autor.split("/")[0].split(",")[0].strip()
+        patterns += [f"{first} ({jahr}", f"{first}, {jahr}",
+                     f"{first} et al. ({jahr}", f"{first} et al., {jahr}"]
+    return any(
+        re.search(r"(?<!\w)" + re.escape(p), body_text, re.IGNORECASE)
+        for p in patterns
+    )
+
+
 # --------------------------------------------------------------------------------------
 # Main
 # --------------------------------------------------------------------------------------
@@ -249,16 +292,20 @@ def main(argv: list[str]) -> int:
 
     sources = parse_literature_md(lit_md_path)
     md_keys = lit_md_keys(sources)
+    # Institutionelle Quellen werden im Text per Abkürzung zitiert (z. B.
+    # "(UN, 2015)"); abk-Feld als gleichwertigen Inline-Schlüssel zulassen.
+    abk_keys = {(s["abk"].lower(), s["jahr"]) for s in sources if s.get("abk")}
 
     doc = Document(str(docx_path))
     docx_entries = parse_docx_lit_verz(doc)
     docx_keys = docx_lit_keys(docx_entries)
     inline_cites = parse_docx_inline_citations(doc)
     inline_keys = inline_cite_keys(inline_cites)
+    body_text = body_fulltext(doc)
 
     only_in_docx = docx_keys - md_keys
     only_in_md = md_keys - docx_keys
-    inline_orphans = inline_keys - md_keys
+    inline_orphans = inline_keys - md_keys - abk_keys
 
     print(f"\n=== Lit-Verz-Drift-Check: {docx_path.name} ===")
     print(f"literature.md Stammdaten: {len(md_keys)} Quellen")
@@ -278,10 +325,33 @@ def main(argv: list[str]) -> int:
             print(f"   - {matching[:100]}")
 
     if only_in_md:
-        # Niedriger gewichtet: Stammdaten ohne DOCX-Verwendung sind nicht streng problematisch
-        print(f"\n⚠ {len(only_in_md)} Stammdaten ohne DOCX-Verwendung (nicht blockierend):")
-        for k in sorted(only_in_md):
-            print(f"   - {k[0]} ({k[1]})")
+        # FIX 2 (P1-A-Sicherheitsnetz): only_in_md aufteilen.
+        #   (a) Quelle im Volltext ZITIERT, aber nicht im gerenderten Lit-Verz
+        #       -> BLOCKIEREND. Genau der De-Vries-Fall: der Build hat eine
+        #       zitierte Quelle aus dem Literaturverzeichnis verschluckt.
+        #   (b) Stammdaten ohne jede Verwendung -> nur Warnung.
+        cited_but_dropped = [
+            s for s in sources
+            if source_key(s) in only_in_md and source_cited_in_text(s, body_text)
+        ]
+        dropped_keys = {source_key(s) for s in cited_but_dropped}
+        never_cited = sorted(only_in_md - dropped_keys)
+
+        if cited_but_dropped:
+            issues += len(cited_but_dropped)
+            print(
+                f"\n✗ {len(cited_but_dropped)} Quelle(n) im Volltext ZITIERT, aber NICHT im "
+                "DOCX-Lit-Verz — der Build hat sie verschluckt "
+                "(vgl. build_docx.get_used_sources, P1-A):"
+            )
+            for s in cited_but_dropped:
+                print(f"   - {s['autor']} ({s['jahr']})  [quelle_id: {s['quelle_id']}]")
+
+        if never_cited:
+            # Niedriger gewichtet: Stammdaten ohne DOCX-Verwendung sind nicht streng problematisch
+            print(f"\n⚠ {len(never_cited)} Stammdaten ohne DOCX-Verwendung (nicht blockierend):")
+            for k in never_cited:
+                print(f"   - {k[0]} ({k[1]})")
 
     if inline_orphans:
         # Orphans nur melden, wenn sie auch nicht im DOCX-Lit-Verz stehen — sonst
