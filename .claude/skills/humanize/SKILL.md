@@ -35,21 +35,34 @@ Lies `config.yaml → docx_frozen`. Wenn ein finalisiertes/konformes DOCX existi
 
 - `.claude/rules/ai-writing-signs.md` (Musterkatalog + Leitplanken)
 - `.claude/rules/writing-style.md` (Stilregeln)
-- `voice-samples/voice-profile.md` (Stilprofil des Autors — falls vorhanden)
+- `base/guides/academic-writing/satzrhythmus.md` (Rhythmus-Zielwerte + Exemplare)
+- Das Voice-Profil: Pfad aus `config.yaml → stil.voice_profile` (Fallback `../voice-samples/voice-profile.md` — falls vorhanden)
 - `preferences.md` (verbotene Woerter, projektspezifisch)
 - Das Zielkapitel
 
+Zusätzlich den Stil-Linter ausführen — seine Funde sind die **primäre
+Arbeitsliste** für Pass 1 (Funde-geführtes Umschreiben statt Volltext-Glättung):
+
+```bash
+python3 scripts/lint_style.py output/phase-05-writing/[final|draft]/[X-X].md --json
+```
+
 ### 4. Voice-Kalibrierung
 
-Wenn `voice-samples/voice-profile.md` existiert: Satzrhythmus, Konnektor-Vorlieben und Stilentscheidungen daraus uebernehmen, statt generisch „glatt" zu schreiben. Wenn der User im Aufruf eine eigene Schreibprobe mitliefert, hat diese Vorrang fuer die Kalibrierung. Ohne Profil und Probe: am vorhandenen Kapiteltext orientieren (Rhythmus beibehalten).
+Wenn das Voice-Profil existiert (Pfad aus `config.yaml → stil.voice_profile`, Fallback `../voice-samples/voice-profile.md`): Satzrhythmus, Konnektor-Vorlieben und Stilentscheidungen daraus uebernehmen, statt generisch „glatt" zu schreiben. Wenn der User im Aufruf eine eigene Schreibprobe mitliefert, hat diese Vorrang fuer die Kalibrierung. Ohne Profil und Probe: an `satzrhythmus.md` und dessen Positiv-Exemplaren kalibrieren — **NIE am vorhandenen Kapiteltext selbst** (der ist der KI-Draft; seinen Rhythmus beizubehalten hiesse, genau das zu konservieren, was entfernt werden soll).
 
-### 5. Pass 1 — Umschreiben
+### 5. Pass 1 — Umschreiben (Funde-gefuehrt, Absatz fuer Absatz)
 
-Gehe den Text Satz fuer Satz durch und entferne die Muster aus dem Regelwerk:
+Arbeite Absatz fuer Absatz. Beginne je Absatz mit den Linter-Funden (Schritt 3)
+als Arbeitsliste, dann pruefe auf die nicht-deterministischen Muster:
+- Blockierende Linter-Funde (L1–L4) ZUERST beheben: verbotene Woerter/Floskeln,
+  Em-Dashes, Artefakte.
 - KI-Vokabular, Kopula-Vermeidung, Synonym-Karussell, Dreierregel-Zwang, Bedeutungs-Aufblaehung, Werbe-/Hochglanzsprache, Autoritaets- und Signpost-Floskeln, Fuellfloskeln, uebermaessiges Hedging, generische Schluesse.
 - Gedankenstrich-Haeufung, Fett-/Title-Case-/Emoji-/Fragment-Muster, Inline-Header-Listen.
 - Analogien/dekorative Bildsprache, gestapelte rhetorische Fragen, Reveal-Doppelpunkt, dramatischer Pivot (Muster 30–33) — Akademische Nuance beachten: eine einzelne Leitfrage, eine fachuebliche Veranschaulichung, ein Definitions-Doppelpunkt und eine belegte kritische Wuerdigung bleiben erhalten.
-- Satzlaengen variieren (vgl. Voice-Profil: jeder dritte Satz kuerzer).
+- Satzlaengen nach den Verteilungs-Zielwerten aus `satzrhythmus.md` variieren
+  (CV ≥ 0,35, kurze Anker-Saetze, nie drei gleich lange Saetze in Folge — KEIN
+  mechanischer Takt wie „jeder dritte Satz kuerzer").
 
 Dabei strikt die Leitplanken halten: Register wissenschaftlich, keine Ich-Form, Zitate und Zahlen unangetastet.
 
@@ -62,6 +75,15 @@ Lies das Ergebnis aus Pass 1 noch einmal mit zwei Fragen.
 **(b) Klausel-Oekonomie:** Gehe Satz fuer Satz, Klausel fuer Klausel und frage: „Traegt diese Klausel etwas bei, das die Leserin braucht?" Reine Fuellklauseln, leere Verstaerker und nachgeschobene Schein-Analysen (Muster 6, 23, 24) ersatzlos streichen.
 
 **Strikte Grenze fuer (b):** Gestrichen werden NUR inhaltsleere Klauseln. Niemals gestrichen werden belegte Aussagen, Argumente, Zahlen, Definitionen, Fachbegriffe oder Quellenbelege (APA). Im Zweifel behalten. Kein Absatz wird unter seine MEAL-Struktur (Main–Evidence–Analysis–Link) oder unter die Zitationsdichte des Arbeitstyps gekuerzt.
+
+**(c) Nachmessung:** Linter erneut ausfuehren:
+
+```bash
+python3 scripts/lint_style.py output/phase-05-writing/draft/[X-X].md --json
+```
+
+Blockierende Funde muessen 0 sein (sonst zurueck zu Pass 1). Das Warnungs-Delta
+kommt in den Bericht (Schritt 9), z. B. „Linter: 2→0 blockierend, 6→2 Warnungen".
 
 ### 7. Speichern
 
@@ -101,6 +123,7 @@ Das Diff ist nur Pruefhilfe; massgeblich bleibt die Markdown-Datei aus Schritt 7
 ```
 === Humanize: Kapitel [X.X] ===
 Muster entfernt: [Liste der Kategorien, z.B. KI-Vokabular, Dreierregel, Fuellfloskeln]
+Linter: [vorher→nachher] blockierend, [vorher→nachher] Warnungen
 Woerter: [neu] (vorher: [alt])
 Zitate unveraendert: [Anzahl Belege vorher = nachher]  ✓
 Vorversion gesichert: output/phase-05-writing/[draft|final]/[X-X].prehum.md

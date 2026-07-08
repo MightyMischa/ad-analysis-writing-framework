@@ -13,7 +13,7 @@ Keine inhaltlichen Änderungen, keine neuen Quellen, kein LaTeX.
 ## Kontext laden
 
 - @config.yaml (Autor, Kurs, Formatierung, Verzeichnisse, Logo, Abgabedatum)
-- @output/phase-02-outline/final/thesis-structure.yaml
+- @output/phase-02-outline/final/thesis-structure.yaml (Self-Heal: falls die Datei fehlt, aus `outline.md` ableiten und nacherzeugen, dann fortfahren)
 - Kapitel in `output/phase-05-writing/final/`
 - @sources/literature.md (Literaturverzeichnis baut der Builder daraus)
 - @output/terminology.md (Abkürzungsverzeichnis, optional)
@@ -51,6 +51,13 @@ Bei Verstößen: **Quelle/Config/Builder anpassen, NICHT die DOCX manuell editie
 
 Im autonomen Lauf (`/auto`) übernimmt die Auto-Fix-Schleife diese Korrekturen
 (max. Versuche aus `config.workflow.auto.max_autofix_attempts`).
+
+### 2b. Stil-Empfehlung (nicht blockierend)
+
+Falls noch kein Gesamtwerk-Review vorliegt
+(`output/phase-06-review/draft/gesamtwerk-reviewed.md` fehlt): empfehle dem User,
+vor der finalen Abgabe einmal `/review --all` (enthält den Gesamtwerk-Pass für
+Voice-Konsistenz) laufen zu lassen. Nur Empfehlung, kein Block.
 
 ### 3. Codex (falls aktiv)
 

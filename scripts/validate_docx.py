@@ -10,7 +10,8 @@ Prüft die kritischen Reviewer-Punkte aus LESSONS.md:
   F6  Heading-1-Anker für Inhalts-/Abkürzungs-/Literaturverzeichnis
   F7  Tabellenverzeichnis-Field falls Tabellen mit SEQ
   F9  Abgabedatum gesetzt (kein Platzhalter)
-  S*  Sprach-Pitfalls (dreier, die SEPA, ein solches, Countering the Financing)
+  S1/S3  Generische Sprach-Pitfalls (dreier, ein solches)
+  S4  Projektspezifische Pitfalls aus preferences.md → „Sprach-Pitfalls (Projekt)"
 
 Aufruf:
   python3 scripts/validate_docx.py output/phase-07-docx/<datei>.docx [--strict]
@@ -221,13 +222,14 @@ def check_abgabedatum(doc_xml: str):
 
 # ----- Sprach-Pitfalls ------------------------------------------------------
 
+# Nur GENERISCHE Grammatik-Pitfalls bleiben hartcodiert. Projektspezifische
+# Strings (früher S2/S4 SEPA/Counter-Financing und I1/I2 CBDC-Zahlen) stehen
+# jetzt in preferences.md → „Sprach-Pitfalls (Projekt)" und werden von dort
+# gelesen — damit greift der Check auch bei neuen Themen statt nie.
 LANG_PITFALLS = [
     ("S1", "anhand drei typischer", "Genitiv: 'anhand dreier typischer …'"),
     ("S1", "anhand drei ", "Verdacht auf 'anhand drei …' statt 'anhand dreier …'"),
-    ("S2", "der Single Euro Payments Area", "SEPA = die Area, also 'die Single Euro Payments Area'"),
-    ("S2", "des Single Euro Payments Area", "SEPA = die Area"),
     ("S3", "so ein Szenario", "umgangssprachlich; 'ein solches Szenario'"),
-    ("S4", "Counter-Financing of Terrorism", "Korrekt: 'Countering the Financing of Terrorism'"),
 ]
 
 
@@ -240,28 +242,47 @@ def check_language_pitfalls(doc_xml: str):
     return issues
 
 
-# ----- Inhalt-Lessons (Aktualität) ------------------------------------------
+# ----- Projektspezifische Pitfalls (aus preferences.md) -----------------------
 
-CONTENT_PITFALLS = [
-    (
-        "I1",
-        re.compile(r"\b114\s+Staaten\b"),
-        "Atlantic-Council-Zahl 114 ist Stand 2023. Aktuell: 137 Länder/Währungsräume.",
-    ),
-    (
-        "I2",
-        re.compile(r"eNaira\s+[^.]*?weltweit\s+erste"),
-        "eNaira ist NICHT die weltweit erste CBDC. Sand Dollar (Bahamas) ging 20.10.2020 live.",
-    ),
-]
+def _read_pref_bullets(repo_root: Path, heading_pattern: str) -> list:
+    """Bullets unter einer ##-Überschrift in preferences.md.
+
+    Code-Fences und HTML-Kommentare werden übersprungen (dort stehen Beispiele).
+    Gleiche Parser-Konvention wie scripts/lint_style.py.
+    """
+    pref = repo_root / "preferences.md"
+    if not pref.exists():
+        return []
+    m = re.search(
+        r"^##+\s*" + heading_pattern + r".*?$(.*?)(?=^##\s|\Z)",
+        pref.read_text(encoding="utf-8"),
+        re.MULTILINE | re.DOTALL | re.IGNORECASE,
+    )
+    if not m:
+        return []
+    body = re.sub(r"```.*?```", "", m.group(1), flags=re.DOTALL)
+    body = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+    items = []
+    for raw in re.findall(r"^[-*]\s+(.+?)\s*$", body, re.MULTILINE):
+        item = raw.split("#", 1)[0].strip().strip("`").strip('"').strip("'").strip()
+        if item:
+            items.append(item)
+    return items
 
 
-def check_content_actuality(doc_xml: str):
+def check_project_pitfalls(doc_xml: str, repo_root: Path):
+    """S4: projektspezifische Sprach-/Fakten-Pitfalls aus preferences.md."""
+    needles = _read_pref_bullets(repo_root, r"Sprach-Pitfalls")
+    if not needles:
+        return []
     text = doc_text(doc_xml)
     issues = []
-    for cid, pattern, hint in CONTENT_PITFALLS:
-        if pattern.search(text):
-            issues.append(f"{cid}: {hint}")
+    for needle in needles:
+        if needle in text:
+            issues.append(
+                f"S4: '{needle}' im Text gefunden — projektspezifischer Pitfall "
+                "(preferences.md → Sprach-Pitfalls)."
+            )
     return issues
 
 
@@ -524,7 +545,7 @@ def validate(docx_path: Path, repo_root: Path | None = None):
     issues.extend(check_table_of_tables(document_xml))
     issues.extend(check_abgabedatum(document_xml))
     issues.extend(check_language_pitfalls(document_xml))
-    issues.extend(check_content_actuality(document_xml))
+    issues.extend(check_project_pitfalls(document_xml, repo_root))
     issues.extend(check_course_book_presence(document_xml, repo_root))
     issues.extend(check_methodengrenzen(document_xml))
     issues.extend(check_number_source_uniqueness(document_xml))

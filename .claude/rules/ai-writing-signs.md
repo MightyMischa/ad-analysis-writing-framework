@@ -18,7 +18,7 @@ Die Originalmuster stammen aus Blog-/Enzyklopaedie-Kontext. Beim Entfernen von K
 2. **Keine Ich-Form.** Niemals zu „ich", „wir", „man" umschreiben. Unpersoenlich/Passiv bleibt korrekt (z. B. „Es laesst sich argumentieren …", „Unter X versteht man …").
 3. **Zitate sind unantastbar.** Quellenbelege (APA) werden NIE entfernt, verschoben oder abgeschwaecht. Wo der Originalkatalog „vage Zuschreibung durch konkrete Quelle ersetzen" sagt, heisst das in der Arbeit: Beleg **behalten/staerken**, niemals streichen.
 4. **Keine Fakten/Zahlen aendern.** `/humanize` ist eine reine Stilbearbeitung. Inhalte, Zahlen, Argumente und ihre Reihenfolge bleiben identisch.
-5. **Vorrang-Reihenfolge bei Konflikt:** `voice-samples/voice-profile.md` + dieses Regelwerk > `.claude/rules/writing-style.md`.
+5. **Vorrang-Reihenfolge bei Konflikt:** Voice-Profil (Pfad aus `config.yaml → stil.voice_profile`, Fallback `../voice-samples/voice-profile.md`) + dieses Regelwerk > `.claude/rules/writing-style.md` > `base/guides/*`.
 
 ## Inhaltliche Muster
 

@@ -5,12 +5,12 @@ Schritt-für-Schritt-Anleitung für das Scientific Writing Framework.
 ## Voraussetzungen
 
 1. **Claude Code** installieren: https://claude.com/claude-code
-2. **LaTeX** (für PDF-Export) -- wird bei `/setup` automatisch geprüft!
-   Falls nicht installiert, bietet das Framework die Installation an.
-   Manuell:
-   - macOS: `brew install --cask mactex-no-gui`
-   - Linux: `sudo apt install texlive-xetex texlive-fonts-extra texlive-lang-german latexmk`
-   - Windows: MiKTeX von https://miktex.org
+2. **python-docx** (Pflicht für den DOCX-Build): `pip install python-docx`
+3. **LibreOffice** (optional, für die PDF-Konvertierung der DOCX):
+   - macOS: `brew install --cask libreoffice`
+   - Linux: `sudo apt install libreoffice`
+   Ohne LibreOffice bleibt die DOCX das Primärartefakt (PDF dann manuell
+   via „Speichern als PDF" in Word/LibreOffice).
 
 ## Setup
 
@@ -31,12 +31,12 @@ Schritt-für-Schritt-Anleitung für das Scientific Writing Framework.
    ```
    Das Interview dauert ca. 5 Minuten und fragt nach:
    - Persönliche Daten (Name, Hochschule, Studiengang)
-   - Arbeitstyp (Seminararbeit, Hausarbeit, Bachelor, Master, Dissertation)
+   - Arbeitstyp (Fallstudie oder Seminararbeit)
    - Seitenumfang
    - Betreuung und Abgabetermin
    - Formatierungsvorgaben (Zitationsstil, Seitenränder, etc.)
    - Quellen-Workflow (BibTeX, PDF-Extraktion, manuell oder keine)
-   - LaTeX-Installation (automatische Prüfung)
+   - DOCX-Toolchain (python-docx/LibreOffice, automatische Prüfung)
    - Optional: Merkblatt-PDF deiner Hochschule für automatische Erkennung
 
 ## Phasen
@@ -84,13 +84,13 @@ Wiederhole bis alle Kapitel geplant sind.
 /review 2.1 # Bestimmtes Kapitel prüfen
 /next       # Oder: nächstes Kapitel automatisch
 ```
-Drei spezialisierte Agenten prüfen Sprache, Zitationen und Argumentation.
+Vier spezialisierte Agenten prüfen Sprache, Zitationen, Argumentation und KI-Stil.
 
-### Phase 7: PDF erstellen
+### Phase 7: DOCX + PDF erstellen
 ```
 /compile
 ```
-LaTeX-Export und PDF-Kompilierung. Fertig!
+IU-konforme DOCX via `scripts/build_docx.py`, PDF-Konvertierung via LibreOffice. Fertig!
 
 ## Wichtige Dateien
 
@@ -109,5 +109,5 @@ LaTeX-Export und PDF-Kompilierung. Fertig!
 - Nutze `/help` für kontextsensitive Hilfe
 - Prüfe jeden Draft bevor du ihn mit `/approve` freigibst
 - Nutze `/rewrite X.X` wenn ein Kapitel komplett neu geschrieben werden soll
-- Empfohlene Quellenanzahl: Seminar 5-10, Haus 8-15, Bachelor 20-40, Master 40-80
+- Empfohlene Quellenanzahl: Fallstudie 8-15, Seminararbeit 5-10
 - BibTeX- oder Zotero-Import ist am schnellsten für viele Quellen auf einmal

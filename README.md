@@ -53,7 +53,7 @@ Ab hier wiederholst du `/next` und `/approve`, bis die Arbeit fertig ist.
 | 2 · Gliederung | Kapitelstruktur erstellen |
 | 3 · Zitat-Zuordnung | Quellen den Kapiteln zuweisen* |
 | 4+5 · Planung + Schreiben | Kapitel einzeln planen und direkt schreiben |
-| 6 · Qualitätsprüfung | 3 Agenten prüfen parallel |
+| 6 · Qualitätsprüfung | 4 Agenten prüfen parallel |
 | 7 · Finalisierung | IU-DOCX (Primärartefakt) + PDF |
 
 *Phase 3 wird automatisch übersprungen wenn du im Setup "keine Quellen" gewählt hast.
@@ -67,7 +67,8 @@ Ab hier wiederholst du `/next` und `/approve`, bis die Arbeit fertig ist.
 - **Flexible Quellenarbeit** (BibTeX, Zotero, PDF-Extraktion, manuell oder ohne Quellen)
 - **APA7** als IU-Standard (Harvard/IEEE/Chicago archiviert unter `docs/archive/`)
 - **Kanonischer DOCX-Builder** (`scripts/build_docx.py`, config-parametrisiert) + PDF via LibreOffice
-- **3 parallele Reviewer** für Sprache, Zitationen und Argumentation, plus blockierendes `/preflight`-Gate
+- **4 parallele Reviewer** für Sprache, Zitationen, Argumentation und KI-Stil, plus blockierendes `/preflight`-Gate
+- **Voice-Profil + Stil-Linter**: persönliches Stilprofil steuert die Generierung; `scripts/lint_style.py` prüft deterministisch auf KI-Schreibspuren (verbotene Wörter/Floskeln blockierend, Rhythmus-Metriken als Warnung)
 - **Self-Healing** erkennt und repariert inkonsistente Projektzustände (`/validate --auto-repair`)
 
 ## Befehle
@@ -79,7 +80,7 @@ Ab hier wiederholst du `/next` und `/approve`, bis die Arbeit fertig ist.
 | `/next` | Nächste Phase starten (Einzelschritt) |
 | `/status` | Fortschritt anzeigen (mit Self-Healing) |
 | `/write [X.X]` | Kapitel schreiben |
-| `/review [X.X]` · `--all` | Qualitätsprüfung (3 Agenten parallel) |
+| `/review [X.X]` · `--all` | Qualitätsprüfung (4 Agenten parallel) |
 | `/humanize [X.X]` · `--all` | KI-Schreibspuren entfernen, Stil natürlicher (Stilpass; Inhalt/Zitate/Zahlen unverändert) |
 | `/cite` | Quelle hinzufügen (PDF, manuell, BibTeX, Zotero) |
 | `/preflight` | Blockierendes Pre-Compile-Gate |

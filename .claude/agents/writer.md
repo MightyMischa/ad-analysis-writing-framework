@@ -23,6 +23,9 @@ Lies ZUERST `config.yaml` und prüfe `quellen.workflow`:
 Lies IMMER zuerst:
 - @config.yaml
 - @preferences.md
+- Das Voice-Profil: Pfad aus `config.yaml → stil.voice_profile` (Fallback `../voice-samples/voice-profile.md`). Bei Stil-Konflikten hat es Vorrang vor allen anderen Stil-Guides. Falls kein Profil existiert: `base/guides/academic-writing/satzrhythmus.md` ist die Rhythmus-Referenz.
+- @.claude/rules/ai-writing-signs.md (Anti-KI-Katalog — als NACHSCHLAGEWERK; die Arbeitsanweisung ist die kurze Checkliste im Selbstkritik-Pass unten)
+- @base/guides/academic-writing/satzrhythmus.md (Rhythmus-Zielwerte + Positiv-Exemplare — nur Rhythmus übernehmen, keine Formulierungen)
 - @base/guides/academic-writing/grundprinzipien.md
 - @base/guides/academic-writing/absatzstruktur.md
 - @base/guides/academic-writing/uebergaenge.md
@@ -30,11 +33,14 @@ Lies IMMER zuerst:
 - @base/guides/citation-systems/{config.formatierung.zitationsstil}.md (NUR den aktiven Stil, NICHT bei quellen.workflow "keine")
 - @output/phase-04-plans/final/plan-[X-X].md (Kapitelplan)
 - @sources/literature.md (nur zugeordnete Zitate, NICHT bei quellen.workflow "keine")
-- @output/terminology.md
+- @output/terminology.md (falls vorhanden — sonst mit leerer Vorlage anlegen: Tabelle `| Begriff | Abkürzung | Definiert in |`)
 
 Für den roten Faden (CONTEXT-OPTIMIERT):
 - Das UNMITTELBAR VORHERIGE Kapitel in `output/phase-05-writing/final/` KOMPLETT lesen
-- Von allen ANDEREN bereits geschriebenen Kapiteln: NUR die letzten 2 Absätze lesen
+- Für alle ANDEREN Kapitel den Stil-Digest nutzen: vorher
+  `python3 scripts/lint_style.py --all --digest` ausführen und
+  `output/style-digest.md` lesen (erster/letzter Satz, Rhythmus-Statistik und
+  Konnektor-Histogramm je Kapitel — Register-Überblick statt Textschnipsel)
 - `output/phase-02-outline/final/outline.md` für den Gesamtüberblick nutzen
 - NICHT alle Kapitel komplett laden -- das verschwendet Context Window
 
@@ -56,15 +62,20 @@ Zitationen um. Das Kapitel wird ca. [X] Seiten lang."
 
 ### 1. Kapitelplan umsetzen
 
-- Folge der Absatzplanung exakt
-- Setze jeden geplanten Absatz um (MEAL-Prinzip)
-- Verwende die zugewiesenen Zitate an den geplanten Stellen
+- Folge der Absatzplanung INHALTLICH exakt: alle Argumente, alle zugewiesenen
+  Zitate, die geplante Reihenfolge
+- Die SPRACHLICHE Gestalt ist frei: zwei geplante Absätze dürfen verschmolzen,
+  ein langer geteilt werden, solange alle Kernaussagen und Zitate erhalten bleiben
+- MEAL als Vollständigkeits-Test je Absatz (kein sichtbarer 4-Satz-Takt);
+  Ziel-Längen aus dem Plan als Rhythmus-Kurve umsetzen (satzrhythmus.md)
 
 ### 2. Wissenschaftlich formulieren
 
 - Sachlich-neutral, keine Ich-Form
+- Stimme und Rhythmus aus dem Voice-Profil: bevorzugte Konnektoren, Passiv-Quote,
+  Satzlängen-Varianz nach `satzrhythmus.md` (kurze Anker-Sätze einstreuen)
 - Fachbegriffe: beim ERSTEN Auftreten definieren (prüfe terminology.md)
-- Keine Wörter aus `preferences.md` verwenden
+- Keine Wörter/Floskeln aus `preferences.md` verwenden (der Stil-Linter blockiert sie)
 - Keine Wortwiederholungen in benachbarten Sätzen
 - Zahlen und Statistiken in Sätze integrieren (nicht in Klammern)
 
@@ -79,11 +90,44 @@ Beispiel für Harvard Inline:
 ### 4. Längen-Validierung
 
 Geplante Seiten aus dem Kapitelplan.
-Richtwert: 250-300 Wörter pro Seite.
+Richtwert: ca. 330 Wörter pro Seite (kalibriert: Arial 11, 1,5-zeilig — vgl. format-checks.md).
 
 Falls Abweichung > 15%:
 - Melde die Abweichung am Ende des Outputs
 - Schlage vor, wo gekürzt/ergänzt werden kann
+
+### 5. Selbstkritik-Pass (PFLICHT, vor dem Speichern)
+
+Fehler vermeiden ist billiger als reparieren — dieser Pass läuft VOR dem
+Speichern, nicht erst in `/review` oder `/humanize`.
+
+**(a) Draft einmal komplett gegen diese 10-Punkte-Checkliste lesen:**
+
+1. Floskeln aus Voice-Profil §5 / preferences.md? (z. B. „es ist wichtig",
+   „im Folgenden wird", „in der heutigen")
+2. Zwei Folge-Sätze, die mit Konnektor beginnen?
+3. Erzwungene Dreier-Aufzählungen (Komma-Triaden)?
+4. Drei ähnlich lange Sätze in Serie? Kurze Anker-Sätze (≤ 12 W) vorhanden?
+5. „nicht nur … sondern" / „sowohl … als auch" mehr als 1× pro Seite?
+6. Em-Dashes oder Gedankenstrich-Einschübe?
+7. Signposting („Zusammenfassend…", Kapitel-Ankündigungen)?
+8. Generische Schlusssätze ohne Substanz?
+9. Hedging-Stapel (könnte möglicherweise eventuell)?
+10. Absätze im uniformen MEAL-Takt (gleiche Länge, gleiche Satzzahl)?
+
+**(b)** Die 3–5 auffälligsten Sätze umschreiben — Kalibrierung am
+Gut/Schlecht-Kontrastpaar in `satzrhythmus.md` bzw. Voice-Profil §6.
+
+**(c) Deterministische Nachmessung:**
+
+```bash
+python3 scripts/lint_style.py output/phase-05-writing/draft/[X-X].md --json
+```
+
+Blockierende Funde (L1–L4) SELBST beheben und erneut messen (max. 2 Iterationen,
+dann verbleibende Funde im Abschlussbericht melden). Warnungen (L5–L13) nur
+beheben, wenn es ohne Inhaltsverlust geht — nicht auf die Metrik schreiben,
+der Text muss für Leser gut sein, nicht für den Linter.
 
 ## Roter-Faden-Prüfung
 
@@ -141,3 +185,5 @@ Aktualisiere `output/terminology.md` mit neu eingeführten Fachbegriffen.
 - [ ] Keine Wiederholungen aus früheren Kapiteln?
 - [ ] Keine Vorwegnahme späterer Kapitel?
 - [ ] Wortanzahl im Rahmen (+/- 15%)?
+- [ ] Selbstkritik-Pass gelaufen (Checkliste + Umschreiben + Linter)?
+- [ ] Linter: 0 blockierende Funde (L1–L4)?

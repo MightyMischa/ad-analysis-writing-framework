@@ -25,17 +25,18 @@ Für jede Kapiteldatei:
 
 ### 3. Seitenschätzung
 
-Umrechnungsformel: ca. 250-300 Wörter pro Seite (bei 12pt, 1.5 Zeilenabstand).
-Verwende den Mittelwert (275) als Standard.
+Umrechnungsformel: **ca. 330 Wörter pro Seite** (kalibriert für Arial 11pt,
+1,5-zeilig, 2 cm Ränder — siehe `format-checks.md` und `measure_pages.py`;
+der frühere Wert 250-300 lag massiv daneben).
 
-Erwartungen an den Arbeitstyp (aus config.yaml):
-- seminararbeit: 10-20 Seiten (2.750-5.500 Wörter)
-- hausarbeit: 15-25 Seiten (4.125-6.875 Wörter)
-- bachelor: 40-60 Seiten (11.000-16.500 Wörter)
-- master: 50-100 Seiten (13.750-27.500 Wörter)
-- dissertation: 150+ Seiten (41.250+ Wörter)
+Erwartungen an den Arbeitstyp (aus config.yaml, nur konfigurierbare Typen):
+- fallstudie: 7-10 Seiten Textteil (ca. 2.300-3.300 Wörter)
+- seminararbeit: 7-10 Seiten Textteil (ca. 2.300-3.300 Wörter)
 
-Nutze die konkreten Werte aus `config.formatierung.seitenumfang.min/max` falls vorhanden.
+Maßgeblich sind IMMER die konkreten Werte aus
+`config.formatierung.seitenumfang.min/max`. Die verbindliche Seitenmessung
+liefert `python3 scripts/measure_pages.py` (echter Render via LibreOffice);
+die Wort-Heuristik ist nur eine Schätzung.
 
 ### 4. Ausgabe formatieren
 

@@ -1,26 +1,30 @@
 # Konfiguration
 
-Alle Optionen in `config.yaml` im Überblick. Diese Datei wird von `/setup` automatisch generiert.
+Alle Optionen in `config.yaml` im Überblick. Diese Datei wird von `/setup` automatisch generiert. Defaults sind auf IU-Fallstudien eingestellt (Arial 11, 1,5-zeilig, 2 cm Ränder, 7–10 Seiten, APA7).
 
 ## Projekt
 
 ```yaml
 projekt:
   titel: "Dein Arbeitstitel"        # Wird in Phase 1/2 festgelegt
-  sprache: "de"                     # de | en
-  typ: "bachelor"                   # seminararbeit | hausarbeit | bachelor | master | dissertation
+  sprache: "de"                     # nur Deutsch (kein Englisch-Support implementiert)
+  typ: "fallstudie"                 # seminararbeit | fallstudie (weitere Typen archiviert)
   methodik: "literatur"             # literatur | empirisch-qualitativ | empirisch-quantitativ
+  kurs_modul: "DLBXYZ01"            # IU-Modulkürzel — PFLICHT bei Fallstudien
+  kurs_titel: "Klartext des Kurses"
+  course_book_pfad: ""              # Pfad zum Lernskript-PDF (für Pflicht-Zitation C1)
+  semester: ""                      # Titelblatt, optional
 ```
 
 ### Arbeitstypen und empfohlene Seitenumfänge
 
-| Typ | Seitenumfang (Richtwert) | Kapitelmodell |
-|-----|--------------------------|---------------|
-| seminararbeit | 10-20 Seiten | 3-Kapitel |
-| hausarbeit | 15-25 Seiten | 3- oder 4-Kapitel |
-| bachelor | 40-60 Seiten | 4- bis 5-Kapitel |
-| master | 50-100 Seiten | 5- bis 6-Kapitel |
-| dissertation | 150+ Seiten | 6+-Kapitel |
+| Typ | Seitenumfang Textteil | Kapitelmodell |
+|-----|----------------------|---------------|
+| fallstudie | 7-10 Seiten | IU-Fallstudienmodell |
+| seminararbeit | 7-10 Seiten | 3-Kapitel |
+
+Weitere Typen (hausarbeit, bachelor, master, dissertation) sind unter
+`docs/archive/kapitelmodelle-all.md` archiviert und nicht mehr wählbar.
 
 ## Autor
 
@@ -28,65 +32,71 @@ projekt:
 autor:
   name: "Max Mustermann"
   matrikelnummer: "12345"
-  hochschule: "Technische Universität Berlin"
-  fakultaet: "Wirtschaftswissenschaften"
-  studiengang: "Betriebswirtschaftslehre"
+  hochschule: "IU Internationale Hochschule"
+  fakultaet: ""
+  studiengang: ""
 ```
 
-## Betreuung
+## Betreuung und Abgabe
 
 ```yaml
 betreuung:
-  erstgutachter: "Prof. Dr. Anna Müller"
-  zweitgutachter: "Prof. Dr. Klaus Schmidt"
-```
+  erstgutachter: "Tutor:in"         # IU-Fallstudien: nur ein:e Tutor:in
 
-## Abgabe
-
-```yaml
 abgabe:
-  datum: "15.09.2026"
-  ort: "Berlin"                     # Für Selbstständigkeitserklärung
+  datum: "TT.MM.JJJJ"               # PFLICHT vor finalem Build (Validator F9)
+  ort: ""
 ```
 
 ## Formatierung
 
 ```yaml
 formatierung:
-  zitationsstil: "harvard-inline"   # harvard-inline | apa7 | ieee | chicago
+  zitationsstil: "apa7"             # IU-Standard seit 01.10.2025 (harvard/ieee/chicago archiviert)
   seitenumfang:
-    min: 40                         # Minimale Seitenzahl (Textteil)
-    max: 60                         # Maximale Seitenzahl (Textteil)
-  schriftart: "Times New Roman"     # Beliebige Schriftart (muss installiert sein)
-  schriftgroesse: 12                # In pt
-  zeilenabstand: 1.5               # 1.0, 1.15, 1.5 oder 2.0
-  seitenraender:
-    oben: 2.5                       # In cm
-    unten: 2.5
-    links: 2.5
-    rechts: 2.5
+    min: 7                          # Textteil (Einleitung bis Fazit)
+    max: 10
+  schriftart: "Arial"
+  schriftgroesse: 11
+  zeilenabstand: 1.5
+  seitenränder:
+    oben: 2.0                       # in cm (IU: 2,0 rundum)
+    unten: 2.0
+    links: 2.0
+    rechts: 2.0
 ```
+
+## Stil (Voice-Profil)
+
+```yaml
+stil:
+  voice_profile: "voice-profile.md"                          # Snapshot im Projekt-Root
+  voice_profile_quelle: "../voice-samples/voice-profile.md"  # Single Source of Truth
+  voice_profile_hash: ""                                     # sha256 des Snapshots (von /setup gesetzt)
+```
+
+Das Voice-Profil steuert Satzrhythmus, Konnektoren und persönliche Stil-Marker
+für Writer, Humanize und die Reviewer. `/setup` kopiert es aus der Quelle;
+`/validate` warnt, wenn der Snapshot veraltet ist (`/setup --refresh-voice`).
 
 ## Verzeichnisse
 
 ```yaml
 verzeichnisse:
-  inhaltsverzeichnis: true          # Immer true
-  abbildungsverzeichnis: true       # Nur wenn Abbildungen vorhanden
-  tabellenverzeichnis: true         # Nur wenn Tabellen vorhanden
-  abkuerzungsverzeichnis: true      # Empfohlen bei Facharbeiten
-  literaturverzeichnis: true        # Immer true
-  hilfsmittelverzeichnis: false     # Manche Unis verlangen das
+  inhaltsverzeichnis: true
+  abbildungsverzeichnis: false      # nur falls Abbildungen vorhanden
+  tabellenverzeichnis: false        # nur falls Tabellen mit SEQ-Caption vorhanden
+  abkuerzungsverzeichnis: true
+  literaturverzeichnis: true
   selbststaendigkeitserklaerung: true
-  sperrvermerk: false               # Bei Unternehmenskooperationen
 ```
 
 ## Quellen
 
 ```yaml
 quellen:
-  workflow: "bibtex"                # bibtex | pdf-extraktion | manuell | keine
-  import_pfad: "./literatur.bib"   # Pfad zur .bib oder Zotero-Exportdatei (CSV/RIS)
+  workflow: "manuell"               # bibtex | pdf-extraktion | manuell | keine
+  import_pfad: ""                   # Pfad zur .bib oder Zotero-Exportdatei
 ```
 
 | Workflow | Beschreibung |
@@ -94,22 +104,42 @@ quellen:
 | `bibtex` | Import aus .bib-Datei (BibTeX/BibLaTeX) |
 | `pdf-extraktion` | KI-basierte Extraktion aus PDF-Dateien |
 | `manuell` | Quellen einzeln per `/cite` erfassen |
-| `keine` | Ohne Quellen arbeiten (nur seminararbeit/hausarbeit) |
+| `keine` | Ohne Quellen arbeiten (Phase 3 wird übersprungen) |
 
-## LaTeX
+## Qualitäts-Gates
 
 ```yaml
-latex:
-  auto_compile: true                # latexmk -pvc Watcher nach erster Kompilierung
-  installation_geprueft: false      # Wird automatisch von /setup oder /compile gesetzt
+codex:
+  auto_review: true                 # Nach jedem Schritt automatisch /codex-review
+  model: "gpt-5.5"
+  reasoning_effort: "xhigh"
+
+preflight:
+  enabled: true                     # Pre-Compile-Gate aktiv
+  block_on_violation: true          # /compile + /approve blockieren bei harten Verstößen
+
+docx_frozen:
+  enabled: false                    # Auto-true sobald _final_konform.docx existiert
+  block_overwrite: true
+  warn_on_markdown_edit: true
+```
+
+## Autonomer Lauf
+
+```yaml
+workflow:
+  auto:
+    gates: ["topic", "outline"]     # Menschliche Halte; [] = voll autonom
+    max_autofix_attempts: 3
+    audit_log: "output/auto-run.log"
 ```
 
 ## Logo
 
 ```yaml
 logo:
-  pfad: "assets/img/uni-logo.png"   # Relativer Pfad zum Hochschul-Logo
-  erkannt: true                     # Vom Setup automatisch gesetzt
+  pfad: "assets/img/iu-logo.png"    # Wird von /setup automatisch erkannt
+  erkannt: true
 ```
 
 ## Fortschritt

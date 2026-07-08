@@ -26,7 +26,7 @@ Verfügbare Befehle:
   /next             Nächste Phase starten oder fortsetzen (Einzelschritt)
   /status           Aktuellen Fortschritt anzeigen (mit Self-Healing)
   /write [X.X]      Bestimmtes Kapitel schreiben (Phase 5)
-  /review [X.X]     Kapitel zur Qualitätsprüfung (Phase 6, 3 Agenten parallel)
+  /review [X.X]     Kapitel zur Qualitätsprüfung (Phase 6, 4 Agenten parallel)
   /review --all     Alle ungeprüften Kapitel nacheinander prüfen
   /humanize [X.X]   KI-Schreibspuren entfernen, Stil natürlicher machen
   /humanize --all   Alle freigegebenen Kapitel humanisieren

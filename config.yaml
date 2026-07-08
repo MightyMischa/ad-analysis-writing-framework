@@ -18,6 +18,11 @@ quellen:
   workflow: "manuell"                   # bibtex | pdf-extraktion | manuell | keine
   import_pfad: ""                       # Pfad zur .bib oder Zotero-Exportdatei
 
+stil:
+  voice_profile: "voice-profile.md"                          # Snapshot im Projekt-Root (von /setup kopiert)
+  voice_profile_quelle: "../voice-samples/voice-profile.md"  # Single Source of Truth (autoritativ)
+  voice_profile_hash: "92506cf0912b619e5ad1990cb234c13d6727877d7024cc9e37b1b90afc6c392f"  # sha256 des Snapshots (von /setup gesetzt; /validate prüft Drift)
+
 codex:
   auto_review: true                     # Nach jedem Schritt automatisch /codex-review aufrufen
   model: "gpt-5.5"                      # Default aus ~/.codex/config.toml falls leer

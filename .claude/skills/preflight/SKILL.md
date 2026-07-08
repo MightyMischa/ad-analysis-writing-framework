@@ -105,6 +105,21 @@ Warnt (nicht blockierend), wenn ein Kapitel seit seinem letzten `/review` oder
 `/humanize` verändert wurde — damit nachträglich ergänzter Text nicht ungeprüft
 durchrutscht. Liefert nichts, solange noch keine Markierungen vorliegen.
 
+**Schritt 2.8 — Stil-Linter (Markdown-Quellen)**
+```bash
+python3 scripts/lint_style.py --all --json
+```
+Läuft IMMER auf den Markdown-Quellen (auch im `/preflight markdown`-Modus und
+wenn ein DOCX geprüft wird — der Stil wird an der Quelle korrigiert):
+- **L1–L4 (verbotene Wörter, Floskeln, Em-Dashes, Chatbot-Artefakte/Pitfalls)
+  → BLOCKIEREND** (gleiche Stufe wie F-Codes)
+- **L5–L13 (Konnektor-Kaskaden, Rhythmus-/Uniformitäts-Metriken, Hedging,
+  Wiederholungen) → WARNUNG** (Ermessenssache, nie blockierend)
+- **L14/L15 (Passiv-Quote, Statistik) → HINWEIS**
+
+Skip-Flag: `/preflight --skip-style-lint`. Behebung: `/humanize [X.X]` arbeitet
+die Linter-Funde gezielt ab.
+
 ### 3. Aggregation
 
 `validate_docx.py` und `check_lit_verz_drift.py` prüfen nur das DOCX-**XML**; die
@@ -113,14 +128,15 @@ optische TOC-Fettung) entscheidet allein das Render-Gate (Schritt 2.6). „Valid
 heißt NICHT „Dokument korrekt".
 
 Sammle alle Funde, gruppiere nach Schwere:
-- **Hoch (BLOCKIEREND):** F-Codes (inkl. F6 TOC-Ebenen), C1, M1, N1, Pitfall-Strings,
+- **Hoch (BLOCKIEREND):** F-Codes (inkl. F6 TOC-Ebenen), C1, M1, N1, Pitfall-Strings
+  (S1/S3/S4), **Stil-Linter L1–L4** (Schritt 2.8),
   Lit-Verz-Drift „im DOCX, nicht in literature.md" UND „im Volltext zitiert, fehlt im
   gerenderten Lit-Verz" (Build hat eine Quelle verschluckt — vgl. P1-A)
 - **Mittel (WARNUNG):** Wortzahl-Schätzung bzw. gemessener Textteil außerhalb Soll,
   Stammdaten ohne DOCX-Verwendung, R-Reproduzierbarkeit-Warnung, Kapitel seit
-  letztem /review oder /humanize verändert (Schritt 2.7)
+  letztem /review oder /humanize verändert (Schritt 2.7), **Stil-Linter L5–L13**
 - **Niedrig (HINWEIS):** A1/A2-Aktualitätshinweise (report/website-Jahr < aktuelles Jahr,
-  Aktualitäts-Anker aus preferences.md), I1-Aktualitätsanker
+  Aktualitäts-Anker aus preferences.md), **Stil-Linter L14/L15**
 - **Render-Gate (manuell, verbindlich):** Schritt 2.6 — nicht aus dem XML ableitbar
 
 ### 4. Output-Format
@@ -197,10 +213,11 @@ preflight:
 ```
 
 Die einzelnen Checks (C1 Course-Book, M1 Methodengrenzen, N1 Zahlen-Eindeutigkeit,
-S1–S4 Pitfall-Strings, Lit-Verz-Drift) laufen fest in der Validator-/Skill-Logik und
-sind NICHT mehr per Config einzeln schaltbar. Wenn ein einzelner Check für einen
-Lauf übersprungen werden muss (z. B. bekannter, akzeptierter Lit-Verz-Drift):
-`/preflight --skip-lit-verz-drift`, `/preflight --skip-course-book` usw.
+S1/S3/S4 Pitfall-Strings, Stil-Linter, Lit-Verz-Drift) laufen fest in der
+Validator-/Skill-Logik und sind NICHT mehr per Config einzeln schaltbar. Wenn ein
+einzelner Check für einen Lauf übersprungen werden muss (z. B. bekannter,
+akzeptierter Lit-Verz-Drift): `/preflight --skip-lit-verz-drift`,
+`/preflight --skip-course-book`, `/preflight --skip-style-lint` usw.
 
 ## Verhalten bei Skript-Fehlern
 

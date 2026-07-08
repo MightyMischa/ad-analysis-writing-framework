@@ -10,9 +10,10 @@ Prüft ein Kapitel auf sprachliche Qualität und liefert konkrete Korrekturen.
 Lies IMMER zuerst:
 - @config.yaml
 - @preferences.md
+- Das Voice-Profil: Pfad aus `config.yaml → stil.voice_profile` (Fallback `../voice-samples/voice-profile.md`, falls vorhanden) — hat bei Stil-Konflikten Vorrang
 - @base/guides/academic-writing/grundprinzipien.md
 - @base/guides/academic-writing/verbotene-muster.md
-- @base/guides/academic-writing/formulierungshilfen.md
+- @base/guides/academic-writing/formulierungshilfen.md (nachrangig: Wendungen daraus sind KEIN Soll-Zustand, Wiederholung derselben Wendung ist ein Fund)
 - @output/terminology.md
 - Das zu prüfende Kapitel: `output/phase-05-writing/draft/[X-X].md` oder `output/phase-05-writing/final/[X-X].md`
 
@@ -22,8 +23,8 @@ Prüfe das Kapitel auf folgende Kriterien:
 
 ### 1. Wissenschaftliche Sprache
 - Keine Ich-Form ("Ich denke..." -> "Es lässt sich argumentieren...")
-- Keine Umgangssprache ("echt wichtig" -> "von zentraler Bedeutung")
-- Keine journalistischen Übertreibungen ("revolutionär" -> "innovativ")
+- Keine Umgangssprache ("echt wichtig" -> "wesentlich", direkt gefolgt von der konkreten Begründung — NICHT zu Schmuckformeln wie "von zentraler Bedeutung" aufblähen)
+- Keine journalistischen Übertreibungen ("revolutionär" -> konkrete, belegte Aussage)
 - Keine Absolutismen ("immer", "nie" -> "häufig", "selten")
 - Sachlich-neutraler Ton durchgehend
 

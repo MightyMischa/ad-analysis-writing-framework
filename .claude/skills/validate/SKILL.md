@@ -31,6 +31,19 @@ Lies `config.yaml` und prüfe:
 - Falls "keine" und typ ist master oder dissertation: Warnung ("Ohne Quellen bei einer [Typ] ist ungewöhnlich")
 - Falls "bibtex" und `quellen.import_pfad` leer: Warnung ("Import-Pfad fehlt")
 
+**Voice-Profil prüfen (config.stil):**
+- Falls `stil.voice_profile` gesetzt: Prüfe ob die Snapshot-Datei existiert.
+  Fehlt sie: FEHLER ("Voice-Profil-Snapshot fehlt — `/setup --refresh-voice` ausführen").
+- Falls Snapshot UND Quelle (`stil.voice_profile_quelle`) existieren:
+  ```bash
+  shasum -a 256 <snapshot> <quelle>
+  ```
+  Weichen die Hashes voneinander ab (Provenienz-Header im Snapshot dabei ignorieren —
+  einfacher Vergleich: Quelle-Hash vs. `stil.voice_profile_hash`):
+  WARNUNG ("Voice-Profil-Snapshot veraltet gegenüber Quelle — `/setup --refresh-voice`").
+- Falls `stil.voice_profile` leer und `../voice-samples/voice-profile.md` existiert:
+  HINWEIS ("Voice-Profil gefunden, aber nicht verdrahtet — `/setup --refresh-voice` übernimmt es").
+
 ### 2. progress.json prüfen
 
 Lies `output/progress.json` und prüfe gegen das Dateisystem:

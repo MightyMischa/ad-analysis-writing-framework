@@ -10,7 +10,7 @@ Lies IMMER zuerst:
 - @config.yaml
 - @.claude/rules/ai-writing-signs.md (Musterkatalog + Akademische Leitplanken)
 - @.claude/rules/writing-style.md
-- @voice-samples/voice-profile.md (falls vorhanden)
+- Das Voice-Profil: Pfad aus `config.yaml → stil.voice_profile` (Fallback `../voice-samples/voice-profile.md`; falls beides fehlt, gilt `base/guides/academic-writing/satzrhythmus.md`)
 - @preferences.md
 - Das zu pruefende Kapitel: `output/phase-05-writing/draft/[X-X].md` oder `.../final/[X-X].md`
 

@@ -3,17 +3,19 @@
 ## Allgemein
 
 ### Für welche Arbeiten ist das Framework geeignet?
-Alle wissenschaftlichen Arbeiten: Seminararbeiten, Hausarbeiten, Bachelorarbeiten,
-Masterarbeiten und Dissertationen aller Fachrichtungen. Es ist besonders gut für
-Literaturarbeiten und konzeptionelle Arbeiten geeignet, funktioniert aber auch mit
-empirischen Arbeiten.
+Optimiert für IU-Fallstudien und Seminararbeiten (7-10 Seiten, Deutsch, APA7).
+Besonders gut für Literaturarbeiten und konzeptionelle Arbeiten. Andere
+Arbeitstypen (Bachelor/Master/Dissertation) und Zitierstile sind unter
+`docs/archive/` archiviert und nicht mehr im Setup wählbar.
 
-### Muss ich LaTeX kennen?
-Nein. Das Framework übernimmt die LaTeX-Konvertierung und -Kompilierung automatisch.
+### Muss ich Word oder python-docx kennen?
+Nein. Das Framework baut die IU-konforme DOCX automatisch über
+`scripts/build_docx.py` und konvertiert sie per LibreOffice zu PDF.
 Du arbeitest nur mit Markdown und Slash-Befehlen.
 
 ### In welcher Sprache kann ich schreiben?
-Deutsch und Englisch werden unterstützt. Die Sprache wird bei `/setup` festgelegt.
+Deutsch. Englisch-Support ist aktuell nicht implementiert
+(siehe `config.yaml → projekt.sprache`).
 
 ## Setup
 
@@ -62,14 +64,17 @@ Argumentation, Bewertung. Claude unterstützt bei Formulierung und Struktur.
 
 ## Technisch
 
-### LaTeX-Kompilierung schlägt fehl. Was tun?
-1. Prüfen ob LaTeX installiert ist: `which latexmk` oder `which xelatex`
-2. Falls nicht installiert: Siehe README.md für Installationsanweisungen
+### Der DOCX-Build schlägt fehl. Was tun?
+1. Prüfen ob python-docx installiert ist: `python3 -c "import docx"`
+2. Falls nicht: `pip install python-docx`
 3. Falls installiert: Fehlermeldung an Claude zeigen mit `/compile`
+4. PDF fehlt? LibreOffice prüfen: `which soffice` (optional, nur für PDF)
 
-### Kann ich die generierte LaTeX-Datei manuell bearbeiten?
-Ja. Die Dateien in `output/phase-07-latex/latex/` können frei bearbeitet werden.
-Beachte aber, dass ein erneutes `/compile` deine Änderungen überschreiben kann.
+### Kann ich die generierte DOCX manuell bearbeiten?
+Besser nicht. Die DOCX in `output/phase-07-docx/` wird bei jedem `/compile`
+neu gebaut, manuelle Änderungen gehen verloren. Format-Korrekturen gehören
+in `config.yaml` bzw. den Builder; für Reviewer-Feedback am finalen DOCX
+gibt es `/apply-feedback` (YAML-Patches, überleben den Frozen-Mode).
 
 ### Wie gross wird das Repository?
 Ca. 1-5 MB ohne PDFs. PDFs in `sources/pdfs/` sind gitignored.
@@ -85,11 +90,9 @@ Ja. Für Seminararbeiten gibt es ein eigenes Kapitelmodell (2-3 Hauptkapitel sta
 Der Outliner-Agent wählt das passende Modell automatisch basierend auf dem Arbeitstyp.
 
 ### Brauche ich weniger Quellen?
-Ja. Die Mindestanforderung wird an den Arbeitstyp angepasst:
-- Seminararbeit: 3 Quellen
-- Hausarbeit: 5 Quellen
-- Bachelorarbeit: 10 Quellen
-- Masterarbeit: 15 Quellen
+Die Mindestanforderung wird an den Arbeitstyp angepasst:
+- Fallstudie: 8 Quellen (empfohlen 8-15, inkl. IU-Lernskript)
+- Seminararbeit: 3 Quellen (empfohlen 5-10)
 
 ## Quellen-Import
 

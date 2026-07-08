@@ -135,12 +135,13 @@ Nachname, V. oder Organisation. (Jahr, Tag. Monat). Titel. URL
 
 ## Richtwerte
 
-**Zitationsdichte nach Arbeitstyp** (aus config.projekt.typ):
-- Dissertation: 8-12 Zitationen pro Seite
-- Masterarbeit: 6-10 Zitationen pro Seite
-- Bachelorarbeit: 5-10 Zitationen pro Seite
-- Hausarbeit: 3-6 Zitationen pro Seite
+**Zitationsdichte nach Arbeitstyp** (aus config.projekt.typ, konfigurierbare Typen):
+- Fallstudie: 3-6 Zitationen pro Seite, gestaffelt nach Kapiteltyp
+  (Grundlagen-Kapitel 6-8, Analyse-/Empfehlungs-Kapitel 2-4 — vgl. reviewer-citations)
 - Seminararbeit: 3-5 Zitationen pro Seite
+
+Archivierte Typen (nicht mehr in config wählbar, nur Referenz):
+Dissertation 8-12, Masterarbeit 6-10, Bachelorarbeit 5-10, Hausarbeit 3-6.
 
 **Verhältnis:**
 - **Überwiegend Paraphrasen** (indirekte Zitate bevorzugt)

@@ -22,8 +22,9 @@ Lies ZUERST `config.yaml` und prüfe `quellen.workflow`:
 Lies IMMER zuerst:
 - @config.yaml
 - @preferences.md
+- Das Voice-Profil: Pfad aus `config.yaml → stil.voice_profile` (Fallback `../voice-samples/voice-profile.md`, falls vorhanden) — daraus die Absatz-Längen-Varianz und Stil-Budgets ableiten
 - @output/phase-02-outline/final/outline.md
-- @output/phase-02-outline/final/thesis-structure.yaml
+- @output/phase-02-outline/final/thesis-structure.yaml (Self-Heal: falls die Datei fehlt, aus `outline.md` ableiten und nacherzeugen, dann fortfahren)
 - @output/phase-03-citations/final/citation-mapping.md (NICHT bei quellen.workflow "keine")
 - @sources/literature.md (nur zugeordnete Zitate, NICHT bei quellen.workflow "keine")
 - @base/guides/academic-writing/absatzstruktur.md
@@ -59,14 +60,20 @@ später konsistent und logisch."
 
 ### 2. Absätze planen
 
-Richtwert: 4-7 Absätze pro Seite (je nach Absatzlänge).
+Richtwert: 3-7 Absätze pro Seite (je nach Absatzlänge).
 
 Für jeden Absatz festlegen:
 - **Typ:** Definition / Argument / Analyse / Vergleich / Überleitung
+- **Ziel-Länge:** kurz (~70 W) / mittel (~110 W) / lang (~160 W)
 - **Kernaussage:** 1 Satz
 - **Zitate:** Welche Quellen mit Seitenangabe
 - **Eigene Analyse:** Was wird interpretiert/eingeordnet
 - **Verbindung:** Wie führt dieser Absatz zum nächsten
+
+**Rhythmus-Kurve planen:** Die Ziel-Längen BEWUSST UNREGELMÄSSIG über das
+Kapitel verteilen (z. B. mittel → lang → kurz → lang → mittel), nie alles
+„mittel". Folge-Absätze sollen sich um ≥ 20 % unterscheiden — gleichförmige
+Absatzlängen sind ein KI-Struktur-Tell (satzrhythmus.md, Linter L9).
 
 ### 3. Fachbegriffe planen
 
@@ -123,7 +130,7 @@ geplante_absätze: [Anzahl]
 
 ## Absatzplanung
 
-### Absatz 1: [Typ]
+### Absatz 1: [Typ] · Ziel-Länge: [kurz/mittel/lang]
 **Kernaussage:** [1 Satz]
 **Zitate:** [quelle_id, S. X] - [Kernaussage des Zitats]
 **Eigene Analyse:** [Was wird eingeordnet]
@@ -145,7 +152,8 @@ Aktualisiere außerdem `output/terminology.md` mit neuen Fachbegriffen.
 ## Qualitäts-Checkliste
 
 - [ ] Alle zugeordneten Zitate eingeplant?
-- [ ] Absatzstruktur folgt MEAL-Prinzip?
+- [ ] Absatzstruktur folgt MEAL-Prinzip (als Vollständigkeits-Test, nicht als Takt)?
+- [ ] Ziel-Längen unregelmäßig verteilt (kein uniformes Raster)?
 - [ ] Keine Inhalte aus anderen Kapiteln wiederholt?
 - [ ] Keine Vorwegnahmen späterer Kapitel?
 - [ ] Übergangsregeln eingehalten?

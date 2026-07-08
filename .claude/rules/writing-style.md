@@ -13,13 +13,12 @@ globs: ["output/**/*.md"]
 
 ## Zitationen
 
-**Zitationsdichte nach Arbeitstyp** (config.projekt.typ):
-- dissertation: 8-12 Zitationen pro Seite
-- master: 6-10 Zitationen pro Seite
-- bachelor: 5-10 Zitationen pro Seite
-- hausarbeit: 3-6 Zitationen pro Seite
+**Zitationsdichte nach Arbeitstyp** (config.projekt.typ, konfigurierbare Typen):
+- fallstudie: 3-6 Zitationen pro Seite, gestaffelt nach Kapiteltyp
+  (Grundlagen 6-8, Analyse/Empfehlung 2-4 — vgl. reviewer-citations)
 - seminararbeit: 3-5 Zitationen pro Seite
 - Bei `quellen.workflow: "keine"`: 0 Zitationen (Argumentation durch Logik und Beispiele)
+- (archivierte Typen: dissertation 8-12, master 6-10, bachelor 5-10, hausarbeit 3-6)
 
 **Allgemeine Regeln** (nur wenn quellen.workflow NICHT "keine"):
 - Jede faktische Behauptung mit Quelle belegen
@@ -28,11 +27,12 @@ globs: ["output/**/*.md"]
 - Ca. 80% indirekte, 20% direkte Zitate
 
 ## Absatzstruktur (MEAL)
-- Main Point: Kernaussage als erster Satz
+- Main Point: Kernaussage (in der Regel früh im Absatz)
 - Evidence: Beleg durch Quelle
 - Analysis: Eigene Einordnung
-- Link: Verbindung zum nächsten Gedanken
-- 80-150 Wörter pro Absatz
+- Link: Verbindung zum nächsten Gedanken (darf entfallen bei Konzept-Anker im Folgeabsatz)
+- MEAL = Vollständigkeits-Test, KEINE Satz-Schablone (kein sichtbarer 4-Satz-Takt)
+- 60-180 Wörter pro Absatz, bewusste Varianz (satzrhythmus.md)
 
 ## Übergänge
 - KEIN letzter Satz der das nächste Kapitel ankündigt

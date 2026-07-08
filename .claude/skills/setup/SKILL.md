@@ -63,8 +63,14 @@ Suche den passenden Kursordner mit dieser Strategie:
 
 #### A4: Voice-Profile
 
-Prüfe ob `../voice-samples/voice-profile.md` existiert.
-- Falls ja: Voice-Profile ist aktiv, `preferences.md` wird damit gesteuert.
+Prüfe ob `../voice-samples/voice-profile.md` existiert (Pfad ggf. aus einer
+Geschwister-Config `stil.voice_profile_quelle` übernehmen).
+- Falls ja: Merke den Pfad. In Phase C wird das Profil als Snapshot
+  `voice-profile.md` ins Projekt-Root kopiert und in `config.yaml → stil`
+  verdrahtet (Pfad, Quelle, sha256-Hash). Writer, Humanize und Reviewer
+  laden dann den Snapshot.
+- Falls nein: `stil.voice_profile` leer lassen — es gilt der generische
+  Rhythmus-Guide `base/guides/academic-writing/satzrhythmus.md`.
 
 #### A5: Betreuer-Erkennung
 
@@ -184,6 +190,11 @@ quellen:
   workflow: "[bibtex/pdf-extraktion/manuell/keine]"
   import_pfad: ""
 
+stil:
+  voice_profile: "[voice-profile.md wenn Snapshot kopiert, sonst leer]"
+  voice_profile_quelle: "[Pfad der Quelle, z. B. ../voice-samples/voice-profile.md]"
+  voice_profile_hash: "[sha256 des Snapshots, siehe Schritt 1b]"
+
 codex:
   auto_review: true
   model: "gpt-5.5"
@@ -261,6 +272,19 @@ fortschritt:
 
 > Bei `methodik != empirisch-quantitativ` bleibt `r_toolchain.enabled: false`.
 > Werte aus Richtlinien-PDFs übernehmen, falls abweichend von den IU-Defaults.
+
+#### 1b. Voice-Profil-Snapshot kopieren (falls Quelle in A4 gefunden)
+
+```bash
+cp ../voice-samples/voice-profile.md voice-profile.md
+shasum -a 256 voice-profile.md   # Hash in config.yaml → stil.voice_profile_hash eintragen
+```
+
+Ergänze am Anfang des Snapshots einen Provenienz-Header (HTML-Kommentar):
+`<!-- Snapshot von ../voice-samples/voice-profile.md, kopiert am [DATUM]. Quelle ist autoritativ; Re-Sync via /setup --refresh-voice -->`
+
+**Modus `/setup --refresh-voice`:** Führt NUR diesen Schritt erneut aus
+(Kopie + Hash + Provenienz-Header aktualisieren), ohne das restliche Setup.
 
 #### 2. sources/literature.md erstellen (falls nicht vorhanden)
 
